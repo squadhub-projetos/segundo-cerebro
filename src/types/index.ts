@@ -91,6 +91,8 @@ export interface GraphPayloadMeta {
   boards: { key: string; id: string; name: string; items: number }[]
   /** Relações vindas explicitamente da monday e relações inferidas (temporárias). */
   explicitRelations: number
+  /** Contagem de ligações lidas da monday (bruto, nos dois lados) × arestas únicas geradas. */
+  relationStats?: { contemAula: { raw: number; unique: number }; divulga: { raw: number; unique: number }; ignored: number }
   inferredRelations: number
   /** Aulas que consolidaram mais de um item da monday. */
   mergedLessons: number

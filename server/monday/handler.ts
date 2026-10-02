@@ -48,7 +48,7 @@ export async function handleGraph(req: IncomingMessage, res: ServerResponse, env
   const ttl = (readConfig(env).cacheSeconds || 0) * 1000
   try {
     if (!refresh && cache && Date.now() - cache.at < ttl) {
-      return send(res, 200, cache.payload, { 'X-Cache': 'HIT' })
+      return send(res, 200, cache.payload, { 'X-Cache': 'HIT', 'Cache-Control': 'no-store' })
     }
     inflight ??= loadGraph(env).finally(() => {
       inflight = null
@@ -81,6 +81,40 @@ export async function handleSchema(req: IncomingMessage, res: ServerResponse, en
 
 const MAX_BODY = 64 * 1024
 
+const hostOf = (value: string): string | null => {
+  try {
+    return new URL(value.includes('://') ? value : `https://${value}`).host.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Proteção contra CSRF: o navegador envia `Origin` nas requisições POST. Aceita o próprio host da requisição (inclui
+ * domínio de produção, domínio customizado e previews, porque a página e a API saem do mesmo host), os hosts da Vercel
+ * deste projeto (VERCEL_URL, VERCEL_BRANCH_URL, VERCEL_PROJECT_PRODUCTION_URL), os listados em ALLOWED_ORIGINS (separados
+ * por vírgula) e localhost. Retorna a mensagem de recusa, ou null se permitido.
+ */
+export function originDenied(req: IncomingMessage, env: Record<string, string | undefined>): string | null {
+  const origin = req.headers.origin
+  if (!origin) return null // chamadas sem navegador (curl, servidor) não enviam Origin
+  const originHost = hostOf(origin)
+  if (!originHost) return 'Origem inválida.'
+  const allowed = new Set<string>()
+  for (const h of [req.headers.host, req.headers['x-forwarded-host']]) {
+    for (const part of String(h ?? '').split(',')) {
+      const host = hostOf(part.trim())
+      if (host) allowed.add(host)
+    }
+  }
+  for (const v of [env.VERCEL_URL, env.VERCEL_BRANCH_URL, env.VERCEL_PROJECT_PRODUCTION_URL, env.APP_ORIGIN, ...(env.ALLOWED_ORIGINS ?? '').split(',')]) {
+    const host = v ? hostOf(v.trim()) : null
+    if (host) allowed.add(host)
+  }
+  if (allowed.has(originHost) || /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(originHost)) return null
+  return `Origem não permitida (${originHost}). Configure ALLOWED_ORIGINS na Vercel se este domínio for legítimo.`
+}
+
 function readBody(req: IncomingMessage): Promise<unknown> {
   // A Vercel já entrega `req.body` interpretado; no Vite lemos o fluxo.
   const preset = (req as IncomingMessage & { body?: unknown }).body
@@ -108,14 +142,13 @@ function readBody(req: IncomingMessage): Promise<unknown> {
 
 /** POST /api/mutate — única rota de escrita (create/update/delete/link/unlink/duplicate). Invalida o cache do grafo. */
 export async function handleMutate(req: IncomingMessage, res: ServerResponse, env: Record<string, string | undefined> = process.env) {
-  if (req.method !== 'POST') return send(res, 405, { error: 'method_not_allowed', message: 'Use POST.' })
-  // Proteção básica contra CSRF: o navegador só envia Origin do próprio site.
-  const origin = req.headers.origin
-  if (origin && req.headers.host && new URL(origin).host !== req.headers.host) {
-    return send(res, 403, { error: 'forbidden', message: 'Origem não permitida.' })
-  }
   const config = readConfig(env)
-  if (!config.writesEnabled) return send(res, 403, { error: 'read_only', message: 'Esta implantação está configurada como somente leitura.' })
+  if (req.method !== 'POST') {
+    return send(res, 405, { error: 'method_not_allowed', message: 'Use POST.', writesEnabled: config.writesEnabled })
+  }
+  const denied = originDenied(req, env)
+  if (denied) return send(res, 403, { error: 'forbidden_origin', message: denied })
+  if (!config.writesEnabled) return send(res, 403, { error: 'writes_disabled', message: 'Escrita na monday está desabilitada (MONDAY_WRITE_ENABLED=0).' })
   if (env.MONDAY_FIXTURE === '1') return send(res, 403, { error: 'read_only', message: 'Dados de demonstração não aceitam gravação.' })
   try {
     const op = parseOp(await readBody(req))

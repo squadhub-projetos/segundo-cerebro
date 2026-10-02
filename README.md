@@ -313,7 +313,8 @@ Arestas (todas `relationSource: monday`, lidas dos linked items): `contem-aula` 
 | `MONDAY_*_BOARD_ID` | servidor | opcionais (padrões embutidos) |
 | `MONDAY_WRITE_ENABLED` | servidor | `0` = somente leitura |
 | `MONDAY_*_NEW_ITEM_GROUP_ID` | servidor | grupo de itens novos (padrão `topics`) |
-| `MONDAY_CACHE_SECONDS` | servidor | cache do grafo (padrão 300; mutations o invalidam) |
+| `MONDAY_CACHE_SECONDS` | servidor | cache do grafo por instância (padrão 30; "Atualizar dados" ignora o cache) |
+| `ALLOWED_ORIGINS` / `APP_ORIGIN` | servidor | hosts extras aceitos no POST (o host da própria requisição, `VERCEL_*URL` e localhost já são aceitos) |
 | `MONDAY_FIXTURE=1` | só dev | dados sintéticos (somente leitura) |
 | `VITE_DATA_SOURCE` | cliente | `monday` ou `mock` (padrão: monday; mocks só com `mock`) |
 

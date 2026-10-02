@@ -112,7 +112,7 @@ export function useStore() {
       if (import.meta.env.DEV) {
         const count = (t: string) => payload.contents.filter((c) => c.type === t).length
         console.info(
-          `[SecondBrain] datasource: ${options.demo ? 'mock' : 'monday'} | contents: ${payload.contents.length} (infoproduto ${count('infoproduto')}, aula ${count('aula')}, youtube ${count('youtube')}) | relations: ${payload.relations.length} | collections: ${payload.collections.length}`,
+          `[SecondBrain] datasource: ${options.demo ? 'mock' : 'monday'} | contents: ${payload.contents.length} (infoproduto ${count('infoproduto')}, aula ${count('aula')}, youtube ${count('youtube')}) | relations: ${payload.relations.length} (aula↔infoproduto ${payload.meta.relationStats?.contemAula.unique ?? '?'}, vídeo↔infoproduto ${payload.meta.relationStats?.divulga.unique ?? '?'}, ignoradas ${payload.meta.relationStats?.ignored ?? '?'}) | collections: ${payload.collections.length}`,
         )
       }
       setData(mergeRemote(payload, overlay))

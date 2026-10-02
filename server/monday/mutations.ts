@@ -1,4 +1,5 @@
 import { MondayError, fetchItem, fetchSchema, gql } from './client.js'
+import type { BoardSchema } from './client.js'
 import { NODE_PREFIX, buildContent, relationIds, themeOf } from './normalize.js'
 import type { BoardKey, MondayConfig, RawBoard, RawItem } from './types.js'
 import type { Content, Theme } from '../../src/types/index.js'
@@ -9,15 +10,45 @@ import type { Content, Theme } from '../../src/types/index.js'
  * (a coluna Connect Boards é substituída por inteiro; sem ler antes, outras ligações seriam apagadas).
  */
 
-/** Colunas reais (descobertas no schema dos quadros). */
+/** Colunas fixas (descrição da aula). As colunas de RELAÇÃO são resolvidas pelo schema (veja `relationColumn`). */
 export const COLUMNS = {
-  /** Controle de Aulas → "Controle de Infoprodutos" (relação canônica). */
-  lessonToInfo: 'board_relation_mm7r2dm1',
-  /** Controle YouTube → "link to Controle de Infoprodutos". */
-  youtubeToInfo: 'board_relation_mm7rxp0x',
   /** Descrição da aula (long text). */
   lessonDescription: 'long_text_mm7rh2ga',
 } as const
+
+const SCHEMA_TTL_MS = 60_000
+const schemaCache = new Map<string, { at: number; schema: BoardSchema }>()
+
+async function schemaOf(config: MondayConfig, boardId: string): Promise<BoardSchema> {
+  const hit = schemaCache.get(boardId)
+  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.schema
+  const schema = await fetchSchema(config, boardId)
+  schemaCache.set(boardId, { at: Date.now(), schema })
+  return schema
+}
+
+function targetBoards(settings: string | null | undefined): string[] {
+  try {
+    const parsed = JSON.parse(settings ?? '{}') as { boardIds?: (number | string)[]; boardId?: number | string }
+    return [...(parsed.boardIds ?? []), ...(parsed.boardId !== undefined ? [parsed.boardId] : [])].map(String)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Coluna Connect Boards do quadro da aula/vídeo que aponta para o quadro de Infoprodutos. É descoberta no schema a cada uso
+ * (cache curto): os ids das colunas mudam quando alguém recria a coluna na monday, e um id fixo passaria a falhar.
+ */
+export async function relationColumn(config: MondayConfig, child: 'aula' | 'youtube'): Promise<string> {
+  const board = config.boards[BOARD_OF[child]]
+  const schema = await schemaOf(config, board)
+  const candidates = schema.columns.filter((c) => c.type === 'board_relation' && targetBoards(c.settings_str).includes(config.boards.infoproducts))
+  if (candidates.length === 0) {
+    throw new MondayError('monday_error', `O quadro ${schema.name} não tem uma coluna Connect Boards apontando para Infoprodutos.`)
+  }
+  return (candidates.find((c) => /infoproduto/i.test(c.title)) ?? candidates[0]).id
+}
 
 export type NodeKind = 'infoproduto' | 'aula' | 'youtube'
 const BOARD_OF: Record<NodeKind, BoardKey> = { infoproduto: 'infoproducts', aula: 'courses', youtube: 'youtube' }
@@ -119,13 +150,9 @@ async function contentOf(config: MondayConfig, kind: NodeKind, itemId: string): 
   return { content, themes }
 }
 
-function relationColumn(child: 'aula' | 'youtube') {
-  return child === 'aula' ? COLUMNS.lessonToInfo : COLUMNS.youtubeToInfo
-}
-
 /** Adiciona/remove UM infoproduto da relação do filho, preservando os demais (lê a lista atual antes de gravar). */
 async function setRelation(config: MondayConfig, child: 'aula' | 'youtube', childItemId: string, infoItemId: string, mode: 'add' | 'remove') {
-  const column = relationColumn(child)
+  const column = await relationColumn(config, child)
   const item = await loadItem(config, child, childItemId)
   const current = relationIds(item, column)
   const next = mode === 'add' ? [...new Set([...current, infoItemId])] : current.filter((id) => id !== infoItemId)

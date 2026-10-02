@@ -32,15 +32,22 @@ function columnMap(board: RawBoard): Map<string, RawColumn> {
   return new Map(board.columns.map((c) => [c.id, c]))
 }
 
+/**
+ * Ids dos itens ligados por uma coluna Connect Boards. Une `linked_item_ids`, `linked_items` e (por segurança) o `value`
+ * bruto: uma coluna refletida pode expor a lista por apenas um desses caminhos.
+ */
 function linkedIds(cv: RawColumnValue): string[] {
   if (cv.type !== 'board_relation') return []
-  if (cv.linked_item_ids?.length) return cv.linked_item_ids.map(String)
+  const ids = new Set<string>()
+  for (const id of cv.linked_item_ids ?? []) ids.add(String(id))
+  for (const item of cv.linked_items ?? []) if (item?.id) ids.add(String(item.id))
   try {
     const parsed = JSON.parse(cv.value ?? 'null') as { linkedPulseIds?: { linkedPulseId: number | string }[] } | null
-    return (parsed?.linkedPulseIds ?? []).map((l) => String(l.linkedPulseId))
+    for (const l of parsed?.linkedPulseIds ?? []) ids.add(String(l.linkedPulseId))
   } catch {
-    return []
+    /* value não é JSON de relação */
   }
+  return [...ids]
 }
 
 function mapStatus(label: string): ContentStatus {
@@ -217,32 +224,41 @@ export function normalizeMondayGraphData(raw: RawBoards, now: Date = new Date())
   const lessonIds = new Set(lessonNodeByItem.keys())
   const videoIds = new Set(videoNodeByItem.keys())
 
+  // Cada ligação pode ser encontrada no lado do infoproduto, no da aula/vídeo, ou nos dois (coluna refletida). Tudo vira um par
+  // de ids de nós e a deduplicação por par garante UMA aresta. Nenhuma ligação é descartada por grupo, coleção ou nome.
+  const stats = { contemAula: { raw: 0, unique: 0 }, divulga: { raw: 0, unique: 0 }, ignored: 0 }
+  const link = (kind: 'contemAula' | 'divulga', source: string, target: string) => {
+    stats[kind].raw++
+    addRelation(kind === 'contemAula' ? 'contem-aula' : 'divulga', source, target, 'monday')
+  }
   for (const item of raw.infoproducts.items) {
     for (const cv of item.column_values) {
       for (const target of linkedIds(cv)) {
-        if (lessonIds.has(target)) {
-          addRelation('contem-aula', infoNodeByItem.get(item.id)!, lessonNodeByItem.get(target)!, 'monday')
-        } else if (videoIds.has(target)) {
-          addRelation('divulga', videoNodeByItem.get(target)!, infoNodeByItem.get(item.id)!, 'monday')
-        }
+        if (lessonIds.has(target)) link('contemAula', infoNodeByItem.get(item.id)!, lessonNodeByItem.get(target)!)
+        else if (videoIds.has(target)) link('divulga', videoNodeByItem.get(target)!, infoNodeByItem.get(item.id)!)
+        else stats.ignored++
       }
     }
   }
   for (const item of raw.courses.items) {
     for (const cv of item.column_values) {
       for (const target of linkedIds(cv)) {
-        if (infoIds.has(target)) {
-          addRelation('contem-aula', infoNodeByItem.get(target)!, lessonNodeByItem.get(item.id)!, 'monday')
-        }
+        if (infoIds.has(target)) link('contemAula', infoNodeByItem.get(target)!, lessonNodeByItem.get(item.id)!)
+        else stats.ignored++
       }
     }
   }
   for (const item of raw.youtube.items) {
     for (const cv of item.column_values) {
       for (const target of linkedIds(cv)) {
-        if (infoIds.has(target)) addRelation('divulga', videoNodeByItem.get(item.id)!, infoNodeByItem.get(target)!, 'monday')
+        if (infoIds.has(target)) link('divulga', videoNodeByItem.get(item.id)!, infoNodeByItem.get(target)!)
+        else stats.ignored++ // inclui colunas que apontam para outros quadros (ex.: Roteiro)
       }
     }
+  }
+  for (const r of relations.values()) {
+    if (r.type === 'contem-aula') stats.contemAula.unique++
+    else if (r.type === 'divulga') stats.divulga.unique++
   }
 
   /* ---- Temas ---- */
@@ -330,6 +346,6 @@ export function normalizeMondayGraphData(raw: RawBoards, now: Date = new Date())
     relations: [...relations.values()],
     collections,
     themes,
-    meta: { fetchedAt: now.toISOString(), boards, explicitRelations, inferredRelations, mergedLessons: 0, warnings },
+    meta: { fetchedAt: now.toISOString(), boards, explicitRelations, relationStats: stats, inferredRelations, mergedLessons: 0, warnings },
   }
 }

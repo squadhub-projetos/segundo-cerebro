@@ -18,6 +18,8 @@ export interface RawColumnValue {
   value: string | null
   /** BoardRelationValue */
   linked_item_ids?: string[]
+  /** BoardRelationValue (lista completa de itens ligados; usada junto com linked_item_ids). */
+  linked_items?: { id: string }[] | null
   /** MirrorValue */
   display_value?: string | null
 }

@@ -29,7 +29,7 @@ export function readConfig(env: Record<string, string | undefined>): MondayConfi
       courses: env.MONDAY_COURSES_BOARD_ID?.trim() || DEFAULT_BOARDS.courses,
       youtube: env.MONDAY_YOUTUBE_BOARD_ID?.trim() || DEFAULT_BOARDS.youtube,
     },
-    cacheSeconds: Number(env.MONDAY_CACHE_SECONDS ?? 300) || 0,
+    cacheSeconds: Number(env.MONDAY_CACHE_SECONDS ?? 30) || 0,
     writesEnabled: env.MONDAY_WRITE_ENABLED?.trim() !== '0',
     newItemGroups: {
       infoproducts: env.MONDAY_INFOPRODUCTS_NEW_ITEM_GROUP_ID?.trim() || 'topics',
@@ -87,7 +87,7 @@ const ITEM_FIELDS = /* GraphQL */ `
     type
     text
     value
-    ... on BoardRelationValue { linked_item_ids }
+    ... on BoardRelationValue { linked_item_ids linked_items { id } }
     ... on MirrorValue { display_value }
   }
 `

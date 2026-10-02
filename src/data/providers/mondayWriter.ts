@@ -1,5 +1,5 @@
 import type { Content, Theme } from '../../types'
-import { ProviderError } from './errors'
+import { ProviderError, httpError } from './errors'
 
 /**
  * Escrita na monday via /api/mutate (o servidor guarda o token e valida cada operação). Cada chamada só retorna depois de a
@@ -24,12 +24,13 @@ async function post(body: Record<string, unknown>): Promise<WriteResult> {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(body),
     })
-  } catch {
+  } catch (error) {
+    console.error('[SecondBrain] POST /api/mutate falhou antes de receber resposta:', error)
     throw new ProviderError('network', 'Sem conexão com o servidor do Segundo Cérebro.')
   }
   const data = (await response.json().catch(() => null)) as (WriteResult & { error?: string; message?: string }) | null
   if (!response.ok || !data || data.error) {
-    throw new ProviderError(data?.error ?? `http_${response.status}`, data?.message ?? `O servidor respondeu ${response.status}.`)
+    throw httpError('/api/mutate', response.status, data?.error, data?.message)
   }
   return data
 }
