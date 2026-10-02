@@ -1,0 +1,1536 @@
+/* Canvas: base quase preta com tendência azul-marinho; luz e forma orgânica bem discretas. */
+.graph {
+  position: absolute;
+  inset: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 900' preserveAspectRatio='none'%3E%3Cpath d='M400 0C330 120 300 260 250 400C200 540 170 700 400 900Z' fill='%23009adc' fill-opacity='.022'/%3E%3C/svg%3E") right center / auto 100% no-repeat,
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgb(14 28 78 / 38%) 0%, rgb(5 8 22 / 0%) 72%),
+    #040612;
+}
+
+.react-flow {
+  background: transparent;
+}
+
+.react-flow__node {
+  /* A posição vem do transform da biblioteca; efeitos visuais ficam no elemento interno. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Nó ---------- */
+.node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  --node-radius: 16px;
+}
+
+/* Presença (busca): escala e opacidade no .node; hover/proximidade ficam no .node-inner; posição, no wrapper do React Flow. */
+.node {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--dur-enter) var(--ease),
+    transform var(--dur-enter) var(--ease);
+}
+
+.node.presence-out {
+  opacity: 0;
+  transform: scale(0.96);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-exit) ease-in,
+    transform var(--dur-exit) ease-in,
+    visibility 0s linear var(--dur-exit);
+}
+
+.react-flow__node.is-out {
+  pointer-events: none !important;
+}
+
+.node-curso {
+  --node-radius: 24px;
+}
+
+.node-pagina {
+  --node-radius: 18px;
+}
+
+.node-aula {
+  --node-radius: 14px;
+}
+
+.node-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--node-radius);
+  background: #111b47;
+  border: 1px solid rgb(120 160 235 / 28%);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 38%);
+  transform: translateY(calc(var(--prox, 0) * -3px)) scale(calc(1 + var(--prox, 0) * 0.035));
+  transition:
+    transform 160ms var(--ease),
+    box-shadow var(--dur-hover) var(--ease),
+    border-color var(--dur-hover) var(--ease),
+    opacity var(--dur-hover) var(--ease),
+    filter var(--dur-hover) var(--ease);
+}
+
+/* Brilho progressivo por proximidade do mouse (--prox é escrito por useProximity). */
+.node::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: calc(var(--node-radius) + 8px);
+  background: var(--node-glow);
+  filter: blur(20px);
+  opacity: calc(var(--prox, 0) * 0.32);
+  pointer-events: none;
+  transition: opacity 160ms var(--ease);
+}
+
+.node-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--node-color) calc(var(--prox, 0) * 85%), transparent),
+    inset 0 0 calc(var(--prox, 0) * 28px) -4px var(--node-glow);
+  pointer-events: none;
+}
+
+/* Anel que se expande uma vez ao selecionar. */
+.node.is-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--node-color);
+  border-radius: var(--node-radius);
+  pointer-events: none;
+  animation: select-ripple 760ms var(--ease) 1 both;
+}
+
+@keyframes select-ripple {
+  from {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
+/* Hierarquia: o curso é o centro do conjunto; a página é a ponte; a aula é compacta. */
+.node-curso .node-inner {
+  background: linear-gradient(160deg, var(--node-tint), rgb(19 32 79 / 0%) 55%), #14214f;
+  border-color: color-mix(in srgb, var(--node-color) 45%, transparent);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 45%),
+    0 0 0 1px color-mix(in srgb, var(--node-color) 12%, transparent),
+    0 0 36px -8px var(--node-glow);
+}
+
+.node-pagina .node-inner {
+  background: linear-gradient(160deg, var(--node-tint), rgb(17 27 71 / 0%) 70%), #111b47;
+  border-color: color-mix(in srgb, var(--node-color) 30%, transparent);
+}
+
+.node-aula .node-inner {
+  background: #101a44;
+}
+
+.node-handle {
+  top: 50%;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Estados: hover é temporário; seleção é persistente. */
+.node.is-hovered .node-inner {
+  transform: translateY(-5px) scale(1.075);
+  border-color: var(--node-color);
+  box-shadow:
+    0 0 0 1px var(--node-color),
+    0 0 34px -2px var(--node-glow),
+    0 16px 32px rgb(0 0 0 / 50%);
+}
+
+.node.is-selected .node-inner {
+  border-color: var(--node-color);
+  box-shadow:
+    0 0 0 2px var(--node-color),
+    0 0 44px 0 var(--node-glow),
+    0 14px 30px rgb(0 0 0 / 50%);
+}
+
+.node.is-selected.is-hovered .node-inner {
+  transform: translateY(-5px) scale(1.075);
+}
+
+.node.emphasis-related .node-inner {
+  border-color: color-mix(in srgb, var(--node-color) 70%, transparent);
+  box-shadow:
+    0 0 22px -4px var(--node-glow),
+    0 8px 20px rgb(0 0 0 / 40%);
+}
+
+/* Não relacionados: primeiro perdem borda, brilho e saturação; o texto continua legível. */
+.node.emphasis-dim .layer {
+  opacity: 0.8;
+}
+
+.node.emphasis-dim .node-inner {
+  filter: saturate(0.55) brightness(0.82);
+  border-color: rgb(120 160 235 / 14%);
+  box-shadow: none;
+}
+
+.react-flow__node:focus-visible {
+  outline: none;
+}
+
+.react-flow__node:focus-visible .node-inner {
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px var(--color-accent);
+}
+
+.react-flow__node.dragging .node-inner {
+  transform: scale(1.03);
+  box-shadow:
+    0 0 0 1px var(--node-color),
+    0 22px 40px rgb(0 0 0 / 55%);
+  cursor: grabbing;
+}
+
+/* ---------- Camadas do zoom semântico ---------- */
+/* Apenas a camada do nível atual é montada (ver ContentNode). Entrada curta, sem camada de saída: nada se sobrepõe. */
+.layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  animation: layer-in 140ms var(--ease) both;
+}
+
+@keyframes layer-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.thumb.fill {
+  position: absolute;
+  inset: 0;
+}
+
+.thumb.strip {
+  flex: none;
+  height: 80px;
+}
+
+.node-curso .layer-near .thumb.strip {
+  height: 84px;
+}
+
+.thumb.strip-tall {
+  height: 104px;
+}
+
+.thumb.side {
+  flex: none;
+  width: 100px;
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 16px 12px;
+}
+
+.title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--color-text);
+  font-weight: 650;
+  font-size: 14px;
+  line-height: 1.22;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--color-subtle);
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+
+.type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-subtle);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.type-label svg {
+  color: var(--type-color, var(--set-color));
+}
+
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-subtle);
+  font-size: 11px;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  align-items: center;
+  gap: 3px 8px;
+}
+
+.row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  padding-left: 12px;
+  min-height: 0;
+}
+
+.row-stretch {
+  padding-left: 0;
+  align-items: stretch;
+}
+
+.tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--node-tint);
+  color: var(--type-color, var(--set-color));
+}
+
+.row .body {
+  padding: 6px 12px 6px 8px;
+}
+
+/* Far */
+.layer-far {
+  align-items: center;
+  justify-content: center;
+}
+
+.node-aula .layer-far,
+.node-curso .layer-far,
+.node-pagina .layer-far {
+  background: var(--node-tint);
+}
+
+.far-icon {
+  color: var(--type-color, var(--set-color));
+}
+
+.far-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  color: var(--type-color, var(--set-color));
+  text-align: center;
+}
+
+.far-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.node-curso .far-title {
+  font-size: 34px;
+}
+
+.far-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgb(10 14 20 / 82%);
+  color: var(--type-color, var(--set-color));
+}
+
+/* Mid: tipografia maior, pois o zoom neste nível é menor que 1. */
+.node-curso .layer-mid .title {
+  font-size: 21px;
+}
+
+.node-pagina .layer-mid .title {
+  font-size: 19px;
+  -webkit-line-clamp: 3;
+}
+
+.node-aula .layer-mid .title {
+  font-size: 17px;
+  -webkit-line-clamp: 3;
+}
+
+.node-aula .layer-mid .body {
+  padding: 8px 16px;
+}
+
+.layer-mid .type-label {
+  font-size: 11px;
+}
+
+.scrim {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 36px 12px 10px 14px;
+  background: linear-gradient(to top, rgb(8 12 17 / 94%), rgb(8 12 17 / 0%));
+}
+
+.scrim .title {
+  font-size: 16px;
+}
+
+/* Near */
+.node-curso .layer-near .title {
+  font-size: 17.5px;
+}
+
+.node-pagina .layer-near .title {
+  font-size: 16px;
+  -webkit-line-clamp: 3;
+}
+
+.node-criativo .layer-near .title {
+  font-size: 14.5px;
+}
+
+.node-criativo .layer-near .body {
+  padding-top: 8px;
+  gap: 3px;
+}
+
+.node-aula .title {
+  font-size: 14.5px;
+}
+
+/* Na aula, o ícone do tipo já aparece no rótulo: libera largura para título e status. */
+.node-aula .layer-near .tile {
+  display: none;
+}
+
+.node-aula .layer-near .row {
+  padding-left: 0;
+}
+
+/* ---------- Conjuntos ---------- */
+.halo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 46%;
+  pointer-events: none;
+}
+
+.halo {
+  opacity: 1;
+  transition: opacity var(--dur-enter) var(--ease);
+}
+
+.halo.halo-out {
+  opacity: 0;
+  transition: opacity var(--dur-exit) ease-in;
+}
+
+.react-flow__edge {
+  opacity: 1;
+  transition: opacity var(--dur-enter) var(--ease) 40ms;
+}
+
+.react-flow__edge.is-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-exit) ease-in,
+    visibility 0s linear var(--dur-exit);
+}
+
+.cluster-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity var(--dur-panel) var(--ease);
+}
+
+.graph[data-level='mid'] .cluster-title {
+  opacity: 0.5;
+}
+
+.graph[data-level='near'] .cluster-title {
+  opacity: 0.22;
+}
+
+.cluster.cluster-out .cluster-title {
+  opacity: 0;
+  transition-duration: var(--dur-exit);
+}
+
+/* ---------- Arestas ---------- */
+.relation-edge .react-flow__edge-path {
+  stroke: #6f88c4;
+  stroke-width: 1.5;
+  opacity: 0.5;
+  transition:
+    stroke var(--dur-hover) var(--ease),
+    stroke-width var(--dur-hover) var(--ease),
+    opacity var(--dur-hover) var(--ease);
+}
+
+.relation-edge.edge-hover:not(.edge-active) .react-flow__edge-path {
+  stroke: #a9c6f2;
+  opacity: 1;
+}
+
+.relation-edge.edge-active .react-flow__edge-path {
+  stroke: var(--edge-color);
+  stroke-width: 2.4;
+  opacity: 1;
+  filter: drop-shadow(0 0 5px var(--edge-color));
+}
+
+.relation-edge.edge-dim .react-flow__edge-path {
+  opacity: 0.1;
+}
+
+.edge-flow {
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-opacity: 0.85;
+  stroke-linecap: round;
+  stroke-dasharray: 2 30;
+  pointer-events: none;
+  animation: edge-flow 1.5s linear infinite;
+}
+
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -64;
+  }
+}
+
+.edge-label {
+  position: absolute;
+  padding: 3px 10px;
+  border: 1px solid rgb(120 160 235 / 28%);
+  border-radius: 10px;
+  background: rgb(14 20 28 / 88%);
+  color: var(--color-text);
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: fade var(--dur-hover) var(--ease);
+}
+
+/* ---------- Dock e legenda ---------- */
+.dock-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  background: rgb(9 15 42 / 78%);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgb(120 160 235 / 18%);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.dock .icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+.dock .icon-btn.is-on {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.dock-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: rgb(120 160 235 / 18%);
+}
+
+.legend-body {
+  width: min(320px, calc(100vw - 32px));
+  padding: var(--space-3) var(--space-4);
+  background: rgb(9 15 42 / 90%);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgb(120 160 235 / 18%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  animation: rise var(--dur-panel) var(--ease);
+}
+
+.legend-body ul {
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.legend-body li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.legend-title {
+  margin: var(--space-2) 0 4px;
+  color: var(--color-subtle);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.legend-title:first-child {
+  margin-top: 0;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-arrow {
+  color: var(--color-accent);
+}
+
+/* ---------- Estado vazio ---------- */
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  transform: translate(-50%, -50%);
+  background: rgb(9 15 42 / 90%);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  color: var(--color-subtle);
+}
+
+.empty-state h2 {
+  color: var(--color-text);
+  font-size: var(--text-lg);
+}
+
+.empty-state .btn {
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 899px) {
+  .dock-panel {
+    margin-bottom: var(--space-2);
+  }
+}
+
+/* ---------- Busca: destaque, motivo e rótulos no zoom distante ---------- */
+mark {
+  padding: 0 2px;
+  margin: 0 -1px;
+  border-radius: 3px;
+  background: rgb(62 200 245 / 22%);
+  color: inherit;
+  box-shadow: inset 0 -1.5px 0 rgb(62 200 245 / 70%);
+}
+
+.reason {
+  display: block;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 11.5px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reason-k {
+  color: var(--brand-cyan);
+  font-weight: 600;
+}
+
+.far-main-sm {
+  gap: 4px;
+  padding: 8px 12px;
+}
+
+.far-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.12;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.far-scrim {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 40px 12px 10px;
+  background: linear-gradient(to top, rgb(6 9 24 / 96%), rgb(6 9 24 / 0%));
+}
+
+.far-scrim .far-label {
+  -webkit-line-clamp: 3;
+  text-align: left;
+}
+
+/* Estado vazio: entra depois que os cards terminaram de sair. */
+.empty-state {
+  animation: fade var(--dur-enter) var(--ease) var(--dur-exit) both;
+}
+
+.empty-state p {
+  max-width: 46ch;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* ---------- Conexões: criação pelo contorno ---------- */
+.react-flow__node[data-conn='source'] .node-inner {
+  box-shadow:
+    0 0 0 2px var(--node-color),
+    0 0 30px var(--node-glow);
+}
+
+.react-flow__node[data-conn='valid'] .node-inner {
+  transform: scale(1.02) !important;
+  border-color: var(--node-color);
+  box-shadow:
+    0 0 0 2px var(--node-color),
+    0 0 42px var(--node-glow),
+    0 14px 30px rgb(0 0 0 / 50%);
+}
+
+.react-flow__node[data-conn='invalid'] .node-inner {
+  box-shadow: 0 0 0 1.5px rgb(240 138 138 / 75%);
+}
+
+/* Linha de conexão durante o arraste */
+.conn-line .conn-glow {
+  stroke: var(--brand-cyan);
+  stroke-width: 10;
+  stroke-linecap: round;
+  opacity: 0.2;
+  filter: blur(5px);
+}
+
+.conn-line .conn-core {
+  stroke: var(--brand-cyan);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.conn-line .conn-flow {
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 2 24;
+  opacity: 0.9;
+  animation: edge-flow 1s linear infinite;
+}
+
+.conn-line.is-valid .conn-core {
+  stroke: #8fe9ff;
+}
+
+.conn-line.is-invalid .conn-core {
+  stroke: #f08a8a;
+  stroke-dasharray: 6 6;
+}
+
+.conn-line.is-invalid .conn-glow {
+  stroke: #f08a8a;
+}
+
+.conn-line.is-invalid .conn-flow {
+  display: none;
+}
+
+/* Cancelamento: a linha recolhe em direção à origem. */
+.conn-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.conn-ghost-path {
+  stroke: var(--brand-cyan);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+  filter: drop-shadow(0 0 5px var(--brand-cyan));
+  animation: ghost-retract 280ms ease-in forwards;
+}
+
+@keyframes ghost-retract {
+  from {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+}
+
+/* Conexão recém-criada: traçado desenhado, partícula de energia e pulso no destino. */
+.relation-edge.edge-fresh .react-flow__edge-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  stroke: var(--brand-cyan);
+  stroke-width: 3;
+  opacity: 1;
+  filter: drop-shadow(0 0 8px var(--brand-cyan));
+  animation:
+    edge-draw 380ms var(--ease) forwards,
+    edge-settle 460ms ease-out 380ms forwards;
+}
+
+@keyframes edge-settle {
+  to {
+    stroke: #6f88c4;
+    stroke-width: 1.5;
+    opacity: 0.5;
+    filter: drop-shadow(0 0 0 transparent);
+  }
+}
+
+@keyframes edge-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.node.pulse .node-inner {
+  animation: node-pulse 560ms var(--ease) 260ms 1;
+}
+
+@keyframes node-pulse {
+  40% {
+    transform: scale(1.07);
+    box-shadow:
+      0 0 0 3px var(--node-color),
+      0 0 50px var(--node-glow);
+  }
+}
+
+/* ---------- Conexões existentes: leitura ---------- */
+.relation-edge.edge-secondary .react-flow__edge-path {
+  opacity: 0.4;
+  stroke: #8aa2d6;
+}
+
+.relation-edge.edge-query .react-flow__edge-path {
+  opacity: 0.9;
+  stroke: #8aa2d6;
+}
+
+.relation-edge.edge-active .react-flow__edge-path {
+  stroke-width: 2.6;
+}
+
+.relation-edge.edge-selected .react-flow__edge-path {
+  stroke-width: 3.6;
+  opacity: 1;
+  filter: drop-shadow(0 0 9px var(--brand-cyan));
+}
+
+.edge-particle {
+  fill: #fff;
+  filter: drop-shadow(0 0 5px var(--brand-cyan));
+  offset-distance: 0%;
+  animation: edge-travel 1.9s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes edge-travel {
+  to {
+    offset-distance: 100%;
+  }
+}
+
+.edge-menu {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  background: rgb(9 15 42 / 95%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgb(62 200 245 / 40%);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: all;
+  animation: rise var(--dur-hover) var(--ease);
+}
+
+.edge-menu-title {
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+}
+
+.edge-menu-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.edge-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.edge-menu-btn:hover {
+  background: var(--color-surface-hover);
+}
+
+.edge-menu-btn.is-danger {
+  border-color: rgb(240 138 138 / 55%);
+  color: var(--color-danger);
+}
+
+/* ---------- Busca no mapa: esmaecer sem sumir, destacar resultados ---------- */
+/* O card continua opaco (a linha passa por trás); só o conteúdo e a cor esmaecem. */
+.node.q-miss .node-inner {
+  filter: saturate(0.5) brightness(0.8);
+}
+
+.node.q-miss .layer {
+  opacity: 0.55;
+}
+
+.node.q-miss.is-hovered .node-inner,
+.node.q-miss.is-selected .node-inner {
+  filter: none;
+}
+
+.node.q-miss.is-hovered .layer,
+.node.q-miss.is-selected .layer {
+  opacity: 1;
+}
+
+.node.q-primary:not(.is-hovered):not(.is-selected) .node-inner {
+  border-color: var(--node-color);
+  box-shadow:
+    0 0 0 1.5px var(--node-color),
+    0 0 34px -2px var(--node-glow),
+    0 8px 20px rgb(0 0 0 / 40%);
+}
+
+.node.q-secondary:not(.is-hovered):not(.is-selected) .node-inner {
+  border-color: color-mix(in srgb, var(--node-color) 60%, transparent);
+  box-shadow:
+    0 0 20px -4px var(--node-glow),
+    0 8px 20px rgb(0 0 0 / 40%);
+}
+
+/* Estado vazio compacto: não cobre o mapa. */
+.empty-state {
+  top: 74px;
+  left: 50%;
+  width: min(440px, calc(100% - 32px));
+  padding: var(--space-3) var(--space-4);
+  transform: translateX(-50%);
+  gap: 4px;
+}
+
+.empty-state h2 {
+  font-size: var(--text-md);
+}
+
+/* Aviso curto */
+.toast {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  z-index: 40;
+  max-width: calc(100vw - 32px);
+  padding: 9px 16px;
+  background: rgb(14 22 58 / 96%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgb(62 200 245 / 35%);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  transform: translateX(-50%);
+  animation: toast-in var(--dur-panel) var(--ease);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-particle {
+    display: none;
+  }
+}
+
+/* O menu da conexão precisa ficar acima dos nós para receber cliques. */
+.react-flow__edgelabel-renderer {
+  z-index: 1200;
+}
+
+/* ---------- Arestas por trás dos cards, seta na borda, assentamento ---------- */
+/* A linha de conexão em andamento também fica abaixo dos cards: sai de trás do card de origem. */
+.react-flow__connectionline {
+  z-index: 0;
+}
+
+.edge-arrow {
+  fill: #6f88c4;
+  opacity: 0.6;
+  transition:
+    fill var(--dur-hover) var(--ease),
+    opacity var(--dur-hover) var(--ease);
+}
+
+.relation-edge.edge-active .edge-arrow,
+.relation-edge.edge-selected .edge-arrow {
+  fill: var(--brand-cyan);
+  opacity: 1;
+}
+
+.relation-edge.edge-secondary .edge-arrow {
+  opacity: 0.4;
+}
+
+.relation-edge.edge-query .edge-arrow {
+  opacity: 0.9;
+}
+
+.relation-edge.edge-dim .edge-arrow {
+  opacity: 0.1;
+}
+
+.relation-edge.edge-fresh .edge-arrow {
+  fill: var(--brand-cyan);
+  animation: arrow-pop 260ms var(--ease) 260ms both;
+}
+
+@keyframes arrow-pop {
+  from {
+    opacity: 0;
+  }
+}
+
+.edge-fresh-glow {
+  fill: #fff;
+  filter: drop-shadow(0 0 8px var(--brand-cyan));
+  offset-distance: 0%;
+  animation: fresh-travel 420ms var(--ease) forwards;
+  pointer-events: none;
+}
+
+@keyframes fresh-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+.edge-burst {
+  fill: none;
+  stroke: var(--brand-cyan);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: edge-burst 520ms ease-out 300ms both;
+  pointer-events: none;
+}
+
+@keyframes edge-burst {
+  from {
+    opacity: 0.95;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* Destino da conexão: anel que se expande e dica de soltura. */
+.node-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--node-color);
+  border-radius: var(--node-radius);
+  pointer-events: none;
+  animation: ring-out 620ms ease-out 260ms both;
+}
+
+@keyframes ring-out {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+
+/* Conteúdo recém-criado: entrada curta. */
+.node.born {
+  animation: node-born 460ms var(--ease) both;
+}
+
+@keyframes node-born {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-fresh-glow,
+  .edge-burst,
+  .node-ring {
+    display: none;
+  }
+}
+
+/* ---------- Indicador no contorno, linha do gesto, cursor ---------- */
+.conn-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.conn-ind {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.conn-ind i {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: var(--brand-cyan);
+  box-shadow:
+    0 0 0 2px rgb(4 6 18 / 90%),
+    0 0 14px rgb(62 200 245 / 55%);
+  opacity: 0;
+  transform: scale(0.35);
+  transition:
+    opacity 140ms var(--ease),
+    transform 180ms var(--ease),
+    box-shadow 180ms var(--ease);
+}
+
+.conn-ind i::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgb(62 200 245 / 45%);
+  border-radius: 50%;
+}
+
+.conn-ind.is-on i {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.conn-ind.is-origin i {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 2px rgb(4 6 18 / 90%),
+    0 0 20px rgb(62 200 245 / 75%);
+}
+
+.conn-ind-target.is-snap i {
+  transform: scale(1.5);
+  background: #fff;
+  box-shadow:
+    0 0 0 2px rgb(4 6 18 / 90%),
+    0 0 24px rgb(62 200 245 / 90%);
+}
+
+.conn-ind-target.is-invalid i {
+  background: #f08a8a;
+  box-shadow:
+    0 0 0 2px rgb(4 6 18 / 90%),
+    0 0 14px rgb(240 138 138 / 55%);
+}
+
+.conn-ind span {
+  position: absolute;
+  top: -34px;
+  left: 0;
+  padding: 3px 10px;
+  background: rgb(9 15 42 / 96%);
+  border: 1px solid rgb(62 200 245 / 50%);
+  border-radius: 999px;
+  color: var(--brand-cyan);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+  transition:
+    opacity 140ms var(--ease),
+    transform 160ms var(--ease);
+}
+
+.conn-ind-target.is-on.is-snap span {
+  opacity: 1;
+  transform: translateX(-50%);
+}
+
+.conn-gesture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.conn-gesture.is-on {
+  display: block;
+}
+
+.conn-ghost-path {
+  stroke: var(--brand-cyan);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.ghost-retract .conn-ghost-path {
+  stroke-dasharray: 1 1;
+  animation: ghost-retract 280ms ease-in forwards;
+}
+
+.ghost-settle .conn-ghost-path {
+  filter: drop-shadow(0 0 6px var(--brand-cyan));
+  animation: ghost-settle 320ms ease-out forwards;
+}
+
+@keyframes ghost-settle {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Cursor: cruz no contorno conectável; "agarrando" durante a conexão. */
+.graph.is-conn-zone .react-flow__node,
+.graph.is-conn-zone .react-flow__pane {
+  cursor: crosshair;
+}
+
+.graph.is-connecting,
+.graph.is-connecting * {
+  cursor: grabbing !important;
+}
+
+/* No contorno conectável o card não escala: o indicador fica sobre a borda visível. */
+.react-flow__node[data-conn='zone'] .node-inner,
+.react-flow__node[data-conn='source'] .node-inner {
+  transform: none !important;
+}
+
+/* Halos, linha do gesto e linha recolhendo ficam abaixo dos cards (e das arestas). */
+.react-flow__viewport-portal {
+  z-index: -1;
+}
+
+.cluster.cluster-out .halo {
+  opacity: 0;
+  transition: opacity var(--dur-exit) ease-in;
+}
+
+/* ---------- Menu de contexto ---------- */
+.ctx-menu {
+  position: fixed;
+  z-index: 80;
+  min-width: 220px;
+  padding: 6px;
+  background: rgb(9 15 42 / 94%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgb(120 160 235 / 24%);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  animation: ctx-in 150ms var(--ease);
+}
+
+@keyframes ctx-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+}
+
+.ctx-title {
+  padding: 6px 10px 4px;
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-align: left;
+  transition:
+    background var(--dur-hover) var(--ease),
+    color var(--dur-hover) var(--ease);
+}
+
+.ctx-item:hover,
+.ctx-item:focus-visible {
+  background: var(--color-accent-soft);
+  color: #fff;
+}
+
+.ctx-icon {
+  display: grid;
+  place-items: center;
+  color: var(--brand-cyan);
+}
+
+.ctx-label {
+  flex: 1;
+}
+
+.ctx-hint {
+  color: var(--color-subtle);
+  font-size: 11px;
+}
+
+.ctx-item.is-danger .ctx-icon {
+  color: var(--color-danger);
+}
+
+.ctx-item.is-danger:hover,
+.ctx-item.is-danger:focus-visible {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* ---------- Seleção por área e em grupo ---------- */
+.graph {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.react-flow__selection {
+  background: rgb(62 200 245 / 9%);
+  border: 1px solid rgb(62 200 245 / 70%);
+  border-radius: 6px;
+  box-shadow: 0 0 22px -4px rgb(62 200 245 / 45%);
+}
+
+.graph.sel-cancelled .react-flow__selection {
+  display: none;
+}
+
+/* Retângulo que envolve o grupo selecionado: só visual (os próprios cards arrastam o grupo). */
+.react-flow__nodesselection-rect {
+  border: 1px dashed rgb(62 200 245 / 35%);
+  border-radius: 10px;
+  background: transparent;
+  pointer-events: none !important;
+}
+
+/* Cursor do fundo: normal; cruz durante a seleção por área; "agarrando" no pan com o botão do meio. */
+.graph .react-flow__pane,
+.graph .react-flow__pane.draggable {
+  cursor: default;
+}
+
+.graph .react-flow__pane.selection {
+  cursor: crosshair;
+}
+
+.graph .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+
+/* Durante a seleção por área: resposta instantânea e efeitos baratos; o estado completo volta ao soltar. */
+.graph.is-selecting .node,
+.graph.is-selecting .node-inner,
+.graph.is-selecting .layer,
+.graph.is-selecting .react-flow__edge,
+.graph.is-selecting .react-flow__edge-path {
+  transition: none !important;
+}
+
+.graph.is-selecting .node.is-selected::after,
+.graph.is-selecting .node::before {
+  display: none;
+}
+
+.graph.is-selecting .node.is-selected .node-inner {
+  box-shadow: 0 0 0 2px var(--node-color) !important;
+  border-color: var(--node-color);
+}
+
+/* Tipos do modelo live: só um detalhe de cor e peso; o desenho dos cards é o mesmo. */
+.node-type-infoproduto .node-inner {
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 45%),
+    0 0 40px -10px rgb(62 200 245 / 55%);
+}
+
+.node-type-infoproduto .title {
+  font-weight: 700;
+}
+
+.node-type-youtube .type-label svg {
+  color: #ff8f8f;
+}

@@ -1,0 +1,93 @@
+/*
+ * Tokens de design centralizados.
+ * Paleta PROVISÓRIA do pacote de referências (identidade\paleta-provisoria.css): não existe logo
+ * nem paleta oficial da SquadHub nesta etapa. Revisar aqui quando a identidade for definida.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Superfícies */
+  --color-bg: #050816;
+  --color-surface: #0a1030;
+  --color-surface-raised: #101a42;
+  --color-surface-hover: #182558;
+  --color-border: #1d2b66;
+  --color-border-strong: #2c3f88;
+
+  /* Texto */
+  --color-text: #f5f8fd;
+  --color-muted: #c2d0ea;
+  --color-subtle: #93a4cc;
+
+  /* Marca (aproximação a partir do logo e das referências; não é um manual oficial) */
+  --brand-blue: #009adc;
+  --brand-cyan: #3ec8f5;
+  --brand-navy: #050816;
+  --brand-violet: #6d3fe0;
+
+  /* Destaque de interface (uso moderado) */
+  --color-accent: #19a7e8;
+  --color-accent-strong: #0a8fd0;
+  --color-accent-soft: rgb(0 154 220 / 14%);
+  --color-on-accent: #04101f;
+  --color-danger: #f08a8a;
+  --color-danger-soft: rgb(240 138 138 / 14%);
+  --color-warning: #ebc17a;
+
+  /* Conjuntos temáticos (provisórios) */
+  --color-gestao: #a8d879;
+  --color-crm: #009adc;
+  --color-indicadores: #ebc17a;
+
+  /* Status */
+  --status-publicado: #a8d879;
+  --status-finalizado: #009adc;
+  --status-em-producao: #ebc17a;
+
+  /* Espaçamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Forma e elevação */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 35%);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 38%);
+  --shadow-lg: 0 18px 48px rgb(0 0 0 / 50%);
+
+  /* Tipografia */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+
+  /* Movimento */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration: 200ms;
+  /* Espelham MOTION em src/lib/motion.ts */
+  --dur-hover: 180ms;
+  --dur-panel: 260ms;
+  --dur-camera: 450ms;
+  --dur-exit: 220ms;
+  --dur-enter: 280ms;
+
+  --focus-ring: 0 0 0 1px var(--color-bg), 0 0 0 2.5px rgb(25 167 232 / 80%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-hover: 0ms;
+    --dur-panel: 0ms;
+    --dur-camera: 0ms;
+    --dur-exit: 0ms;
+    --dur-enter: 0ms;
+  }
+}

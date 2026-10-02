@@ -1,0 +1,122 @@
+{
+  "gestao-criativo-01": {
+    "x": -650,
+    "y": -235
+  },
+  "gestao-criativo-02": {
+    "x": -650,
+    "y": 0
+  },
+  "gestao-criativo-03": {
+    "x": -650,
+    "y": 235
+  },
+  "gestao-pagina": {
+    "x": -250,
+    "y": 0
+  },
+  "gestao-curso": {
+    "x": 180,
+    "y": 0
+  },
+  "gestao-aula-01": {
+    "x": 1020,
+    "y": -410
+  },
+  "gestao-aula-02": {
+    "x": 650,
+    "y": -205
+  },
+  "gestao-aula-03": {
+    "x": 1020,
+    "y": 0
+  },
+  "gestao-aula-04": {
+    "x": 650,
+    "y": 205
+  },
+  "gestao-aula-05": {
+    "x": 1020,
+    "y": 410
+  },
+  "crm-criativo-01": {
+    "x": -650,
+    "y": 815
+  },
+  "crm-criativo-02": {
+    "x": -650,
+    "y": 1050
+  },
+  "crm-criativo-03": {
+    "x": -650,
+    "y": 1285
+  },
+  "crm-pagina": {
+    "x": -250,
+    "y": 1050
+  },
+  "crm-curso": {
+    "x": 180,
+    "y": 1050
+  },
+  "crm-aula-01": {
+    "x": 1020,
+    "y": 640
+  },
+  "crm-aula-02": {
+    "x": 650,
+    "y": 845
+  },
+  "crm-aula-03": {
+    "x": 1020,
+    "y": 1050
+  },
+  "crm-aula-04": {
+    "x": 650,
+    "y": 1255
+  },
+  "crm-aula-05": {
+    "x": 1020,
+    "y": 1460
+  },
+  "indicadores-criativo-01": {
+    "x": -650,
+    "y": 1865
+  },
+  "indicadores-criativo-02": {
+    "x": -650,
+    "y": 2100
+  },
+  "indicadores-criativo-03": {
+    "x": -650,
+    "y": 2335
+  },
+  "indicadores-pagina": {
+    "x": -250,
+    "y": 2100
+  },
+  "indicadores-curso": {
+    "x": 180,
+    "y": 2100
+  },
+  "indicadores-aula-01": {
+    "x": 1020,
+    "y": 1690
+  },
+  "indicadores-aula-02": {
+    "x": 650,
+    "y": 1895
+  },
+  "indicadores-aula-03": {
+    "x": 1020,
+    "y": 2100
+  },
+  "indicadores-aula-04": {
+    "x": 650,
+    "y": 2305
+  },
+  "indicadores-aula-05": {
+    "x": 1020,
+    "y": 2510
+  }
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Miniatura ilustrativa">
+<defs><radialGradient id="g" cx="55%" cy="6%" r="75%"><stop offset="0" stop-color="#A8D879" stop-opacity=".2"/><stop offset="1" stop-color="#A8D879" stop-opacity="0"/></radialGradient></defs>
+<rect width="960" height="540" fill="#0b1233"/><rect width="960" height="540" fill="url(#g)"/>
+<rect x="254" y="340" width="400" height="120" rx="24" fill="#A8D879" opacity="0.14" stroke="#A8D879" stroke-width="2.5"/><rect x="224" y="230" width="460" height="120" rx="24" fill="#A8D879" opacity="0.22" stroke="#A8D879" stroke-width="2.5"/><rect x="194" y="120" width="520" height="120" rx="24" fill="#A8D879" opacity="0.34" stroke="#A8D879" stroke-width="2.5"/><circle cx="264" cy="180" r="22" fill="#A8D879"/><rect x="314" y="168" width="240" height="14" rx="7" fill="#A8D879" opacity=".7"/><rect x="314" y="192" width="170" height="10" rx="5" fill="#A8D879" opacity=".4"/><path d="M264 202 V470" stroke="#A8D879" stroke-width="2" stroke-dasharray="3 10" opacity=".4"/>
+</svg>

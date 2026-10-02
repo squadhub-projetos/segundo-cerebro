@@ -1,0 +1,692 @@
+[
+  {
+    "id": "gestao-criativo-01",
+    "title": "Seu projeto tem dono ou só prazo?",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre gestão de projetos com monday.",
+    "bodyMarkdown": "## Proposta\nSeu projeto tem dono ou só prazo?. Conteúdo de demonstração para apresentar o tema gestão de projetos com monday.\n\n## Texto do criativo\nQuando responsabilidades e próximos passos ficam claros, a equipe consegue dar continuidade ao trabalho. Conheça uma forma prática de organizar essa rotina.\n\n## Chamada para ação\nConheça o conteúdo do curso “Projetos do planejamento à entrega”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "publicado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-criativo-01.svg",
+    "contentPath": "conteudos/gestao-criativo-01.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-criativo-02",
+    "title": "Três sinais de um projeto sem direção",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre gestão de projetos com monday.",
+    "bodyMarkdown": "## Proposta\nTrês sinais de um projeto sem direção. Conteúdo de demonstração para apresentar o tema gestão de projetos com monday.\n\n## Texto do criativo\nAntes de adicionar uma ferramenta, revise como a equipe trabalha. Um processo compreensível facilita o uso dos dados e a colaboração.\n\n## Chamada para ação\nConheça o conteúdo do curso “Projetos do planejamento à entrega”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-criativo-02.svg",
+    "contentPath": "conteudos/gestao-criativo-02.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-criativo-03",
+    "title": "Do briefing à entrega, sem perder o contexto",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre gestão de projetos com monday.",
+    "bodyMarkdown": "## Proposta\nDo briefing à entrega, sem perder o contexto. Conteúdo de demonstração para apresentar o tema gestão de projetos com monday.\n\n## Texto do criativo\nOrganize as informações essenciais, conecte as etapas e mantenha o contexto disponível para quem precisa agir.\n\n## Chamada para ação\nConheça o conteúdo do curso “Projetos do planejamento à entrega”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "em-producao",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-criativo-03.svg",
+    "contentPath": "conteudos/gestao-criativo-03.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-pagina",
+    "title": "Organize projetos com clareza",
+    "type": "pagina",
+    "description": "Página fictícia de apresentação do curso Projetos do planejamento à entrega.",
+    "bodyMarkdown": "## Título principal\nOrganize projetos com clareza\n\n## Proposta\nUm percurso prático sobre gestão de projetos com monday, com exemplos e exercícios para estruturar a rotina da equipe.\n\n## O que será abordado\n- Do pedido ao briefing\n- Estrutura de quadros e responsabilidades\n- Dependências e planejamento\n- Rotina de acompanhamento\n- Encerramento e aprendizado\n\n## Para quem\nPessoas que organizam processos e precisam transformar informações em ações claras.\n\n## Chamada para ação\nExplorar o programa do curso.\n\nEsta página não representa uma oferta comercial real. Não há preço, checkout ou formulário ativo.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "publicado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-pagina.svg",
+    "contentPath": "conteudos/gestao-pagina.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-curso",
+    "title": "Projetos do planejamento à entrega",
+    "type": "curso",
+    "description": "Percurso fictício de cinco aulas sobre gestão de projetos com monday.",
+    "bodyMarkdown": "## Apresentação\nProjetos do planejamento à entrega reúne cinco aulas conceituais com atividades práticas.\n\n## Objetivo\nApoiar a organização de uma rotina de gestão de projetos com monday com critérios claros e materiais reutilizáveis.\n\n## Programa\n1. Do pedido ao briefing\n2. Estrutura de quadros e responsabilidades\n3. Dependências e planejamento\n4. Rotina de acompanhamento\n5. Encerramento e aprendizado\n\n## Entrega prática\nUm pequeno plano de aplicação, reunindo os exercícios das aulas.\n\n## Observação\nPrograma criado exclusivamente para demonstração do grafo. Não representa curso real da SquadHub.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-curso.svg",
+    "contentPath": "conteudos/gestao-curso.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-aula-01",
+    "title": "Do pedido ao briefing",
+    "type": "aula",
+    "description": "Transformar pedidos dispersos em objetivos, entregáveis e critérios de aceite.",
+    "bodyMarkdown": "## Objetivo da aula\nTransformar pedidos dispersos em objetivos, entregáveis e critérios de aceite.\n\n## Resumo\nRegistrar problema, resultado esperado, responsável e restrições. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nConverter um pedido informal em um briefing de uma página.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-aula-01.svg",
+    "contentPath": "conteudos/gestao-aula-01.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-aula-02",
+    "title": "Estrutura de quadros e responsabilidades",
+    "type": "aula",
+    "description": "Organizar entregas e responsáveis de forma consistente.",
+    "bodyMarkdown": "## Objetivo da aula\nOrganizar entregas e responsáveis de forma consistente.\n\n## Resumo\nSeparar projeto, entrega e atividade; definir um responsável por atividade. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nModelar um projeto de campanha com responsáveis e datas.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-aula-02.svg",
+    "contentPath": "conteudos/gestao-aula-02.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-aula-03",
+    "title": "Dependências e planejamento",
+    "type": "aula",
+    "description": "Identificar sequências e dependências antes de assumir prazos.",
+    "bodyMarkdown": "## Objetivo da aula\nIdentificar sequências e dependências antes de assumir prazos.\n\n## Resumo\nMapear pré-requisitos e revisar capacidade antes de confirmar a entrega. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nRelacionar três atividades dependentes e explicar a sequência.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-aula-03.svg",
+    "contentPath": "conteudos/gestao-aula-03.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-aula-04",
+    "title": "Rotina de acompanhamento",
+    "type": "aula",
+    "description": "Conduzir acompanhamentos com foco em decisões e impedimentos.",
+    "bodyMarkdown": "## Objetivo da aula\nConduzir acompanhamentos com foco em decisões e impedimentos.\n\n## Resumo\nRevisar o que mudou, os bloqueios e a próxima ação de cada entrega. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nPreparar uma pauta curta de acompanhamento semanal.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-aula-04.svg",
+    "contentPath": "conteudos/gestao-aula-04.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "gestao-aula-05",
+    "title": "Encerramento e aprendizado",
+    "type": "aula",
+    "description": "Registrar aprendizados que melhorem a próxima execução.",
+    "bodyMarkdown": "## Objetivo da aula\nRegistrar aprendizados que melhorem a próxima execução.\n\n## Resumo\nComparar o planejado com o realizado e documentar decisões úteis. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nEscrever uma retrospectiva com uma melhoria acionável.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "gestao-projetos",
+      "monday",
+      "processos"
+    ],
+    "status": "em-producao",
+    "collectionId": "gestao",
+    "thumbnailPath": "midias/gestao-aula-05.svg",
+    "contentPath": "conteudos/gestao-aula-05.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-criativo-01",
+    "title": "O lead respondeu. E agora?",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre automação comercial e crm.",
+    "bodyMarkdown": "## Proposta\nO lead respondeu. E agora?. Conteúdo de demonstração para apresentar o tema automação comercial e crm.\n\n## Texto do criativo\nQuando responsabilidades e próximos passos ficam claros, a equipe consegue dar continuidade ao trabalho. Conheça uma forma prática de organizar essa rotina.\n\n## Chamada para ação\nConheça o conteúdo do curso “Operação comercial conectada”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "publicado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-criativo-01.svg",
+    "contentPath": "conteudos/crm-criativo-01.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-criativo-02",
+    "title": "Follow-up com contexto",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre automação comercial e crm.",
+    "bodyMarkdown": "## Proposta\nFollow-up com contexto. Conteúdo de demonstração para apresentar o tema automação comercial e crm.\n\n## Texto do criativo\nAntes de adicionar uma ferramenta, revise como a equipe trabalha. Um processo compreensível facilita o uso dos dados e a colaboração.\n\n## Chamada para ação\nConheça o conteúdo do curso “Operação comercial conectada”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-criativo-02.svg",
+    "contentPath": "conteudos/crm-criativo-02.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-criativo-03",
+    "title": "Automação começa com uma regra clara",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre automação comercial e crm.",
+    "bodyMarkdown": "## Proposta\nAutomação começa com uma regra clara. Conteúdo de demonstração para apresentar o tema automação comercial e crm.\n\n## Texto do criativo\nOrganize as informações essenciais, conecte as etapas e mantenha o contexto disponível para quem precisa agir.\n\n## Chamada para ação\nConheça o conteúdo do curso “Operação comercial conectada”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "em-producao",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-criativo-03.svg",
+    "contentPath": "conteudos/crm-criativo-03.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-pagina",
+    "title": "Construa uma rotina comercial consistente",
+    "type": "pagina",
+    "description": "Página fictícia de apresentação do curso Operação comercial conectada.",
+    "bodyMarkdown": "## Título principal\nConstrua uma rotina comercial consistente\n\n## Proposta\nUm percurso prático sobre automação comercial e crm, com exemplos e exercícios para estruturar a rotina da equipe.\n\n## O que será abordado\n- Mapa da jornada comercial\n- Cadastro e qualidade dos dados\n- Gatilhos e automações\n- Follow-up e continuidade\n- Leitura do funil\n\n## Para quem\nPessoas que organizam processos e precisam transformar informações em ações claras.\n\n## Chamada para ação\nExplorar o programa do curso.\n\nEsta página não representa uma oferta comercial real. Não há preço, checkout ou formulário ativo.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "publicado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-pagina.svg",
+    "contentPath": "conteudos/crm-pagina.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-curso",
+    "title": "Operação comercial conectada",
+    "type": "curso",
+    "description": "Percurso fictício de cinco aulas sobre automação comercial e crm.",
+    "bodyMarkdown": "## Apresentação\nOperação comercial conectada reúne cinco aulas conceituais com atividades práticas.\n\n## Objetivo\nApoiar a organização de uma rotina de automação comercial e crm com critérios claros e materiais reutilizáveis.\n\n## Programa\n1. Mapa da jornada comercial\n2. Cadastro e qualidade dos dados\n3. Gatilhos e automações\n4. Follow-up e continuidade\n5. Leitura do funil\n\n## Entrega prática\nUm pequeno plano de aplicação, reunindo os exercícios das aulas.\n\n## Observação\nPrograma criado exclusivamente para demonstração do grafo. Não representa curso real da SquadHub.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-curso.svg",
+    "contentPath": "conteudos/crm-curso.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-aula-01",
+    "title": "Mapa da jornada comercial",
+    "type": "aula",
+    "description": "Entender entradas, etapas e critérios de avanço de um lead.",
+    "bodyMarkdown": "## Objetivo da aula\nEntender entradas, etapas e critérios de avanço de um lead.\n\n## Resumo\nDefinir o significado de cada etapa e quem assume o próximo contato. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nDesenhar a jornada de um lead até o agendamento.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-aula-01.svg",
+    "contentPath": "conteudos/crm-aula-01.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-aula-02",
+    "title": "Cadastro e qualidade dos dados",
+    "type": "aula",
+    "description": "Manter informações úteis para atendimento e segmentação.",
+    "bodyMarkdown": "## Objetivo da aula\nManter informações úteis para atendimento e segmentação.\n\n## Resumo\nDefinir campos essenciais e critérios de identificação de duplicidades. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nRevisar uma ficha fictícia e identificar dados ausentes.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-aula-02.svg",
+    "contentPath": "conteudos/crm-aula-02.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-aula-03",
+    "title": "Gatilhos e automações",
+    "type": "aula",
+    "description": "Transformar regras de negócio em ações verificáveis.",
+    "bodyMarkdown": "## Objetivo da aula\nTransformar regras de negócio em ações verificáveis.\n\n## Resumo\nDescrever evento, condição, ação e comportamento em caso de erro. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nEspecificar uma automação de resposta recebida.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-aula-03.svg",
+    "contentPath": "conteudos/crm-aula-03.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-aula-04",
+    "title": "Follow-up e continuidade",
+    "type": "aula",
+    "description": "Planejar contatos com contexto e critérios de encerramento.",
+    "bodyMarkdown": "## Objetivo da aula\nPlanejar contatos com contexto e critérios de encerramento.\n\n## Resumo\nDiferenciar ausência de resposta, interesse futuro e falta de aderência. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nCriar uma sequência fictícia de três contatos com objetivos distintos.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-aula-04.svg",
+    "contentPath": "conteudos/crm-aula-04.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "crm-aula-05",
+    "title": "Leitura do funil",
+    "type": "aula",
+    "description": "Identificar gargalos sem confundir atividade com resultado.",
+    "bodyMarkdown": "## Objetivo da aula\nIdentificar gargalos sem confundir atividade com resultado.\n\n## Resumo\nObservar passagem entre etapas e qualidade dos registros. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nEscolher indicadores para revisar a operação comercial.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "crm",
+      "automacao",
+      "processos"
+    ],
+    "status": "em-producao",
+    "collectionId": "crm",
+    "thumbnailPath": "midias/crm-aula-05.svg",
+    "contentPath": "conteudos/crm-aula-05.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-criativo-01",
+    "title": "Seu painel responde qual pergunta?",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre indicadores e gestão de operações.",
+    "bodyMarkdown": "## Proposta\nSeu painel responde qual pergunta?. Conteúdo de demonstração para apresentar o tema indicadores e gestão de operações.\n\n## Texto do criativo\nQuando responsabilidades e próximos passos ficam claros, a equipe consegue dar continuidade ao trabalho. Conheça uma forma prática de organizar essa rotina.\n\n## Chamada para ação\nConheça o conteúdo do curso “Indicadores que orientam decisões”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "publicado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-criativo-01.svg",
+    "contentPath": "conteudos/indicadores-criativo-01.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-criativo-02",
+    "title": "Indicador sem ação é só um número",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre indicadores e gestão de operações.",
+    "bodyMarkdown": "## Proposta\nIndicador sem ação é só um número. Conteúdo de demonstração para apresentar o tema indicadores e gestão de operações.\n\n## Texto do criativo\nAntes de adicionar uma ferramenta, revise como a equipe trabalha. Um processo compreensível facilita o uso dos dados e a colaboração.\n\n## Chamada para ação\nConheça o conteúdo do curso “Indicadores que orientam decisões”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-criativo-02.svg",
+    "contentPath": "conteudos/indicadores-criativo-02.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-criativo-03",
+    "title": "Da rotina ao painel de gestão",
+    "type": "criativo",
+    "description": "Peça conceitual de divulgação sobre indicadores e gestão de operações.",
+    "bodyMarkdown": "## Proposta\nDa rotina ao painel de gestão. Conteúdo de demonstração para apresentar o tema indicadores e gestão de operações.\n\n## Texto do criativo\nOrganize as informações essenciais, conecte as etapas e mantenha o contexto disponível para quem precisa agir.\n\n## Chamada para ação\nConheça o conteúdo do curso “Indicadores que orientam decisões”.\n\n## Orientação visual\nTítulo em destaque, composição limpa e uma chamada para a página relacionada.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "em-producao",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-criativo-03.svg",
+    "contentPath": "conteudos/indicadores-criativo-03.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-pagina",
+    "title": "Transforme dados em decisões de rotina",
+    "type": "pagina",
+    "description": "Página fictícia de apresentação do curso Indicadores que orientam decisões.",
+    "bodyMarkdown": "## Título principal\nTransforme dados em decisões de rotina\n\n## Proposta\nUm percurso prático sobre indicadores e gestão de operações, com exemplos e exercícios para estruturar a rotina da equipe.\n\n## O que será abordado\n- Perguntas antes dos gráficos\n- Definição de indicadores\n- Qualidade e rastreabilidade\n- Composição de um painel\n- Rotina de análise e melhoria\n\n## Para quem\nPessoas que organizam processos e precisam transformar informações em ações claras.\n\n## Chamada para ação\nExplorar o programa do curso.\n\nEsta página não representa uma oferta comercial real. Não há preço, checkout ou formulário ativo.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "publicado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-pagina.svg",
+    "contentPath": "conteudos/indicadores-pagina.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-curso",
+    "title": "Indicadores que orientam decisões",
+    "type": "curso",
+    "description": "Percurso fictício de cinco aulas sobre indicadores e gestão de operações.",
+    "bodyMarkdown": "## Apresentação\nIndicadores que orientam decisões reúne cinco aulas conceituais com atividades práticas.\n\n## Objetivo\nApoiar a organização de uma rotina de indicadores e gestão de operações com critérios claros e materiais reutilizáveis.\n\n## Programa\n1. Perguntas antes dos gráficos\n2. Definição de indicadores\n3. Qualidade e rastreabilidade\n4. Composição de um painel\n5. Rotina de análise e melhoria\n\n## Entrega prática\nUm pequeno plano de aplicação, reunindo os exercícios das aulas.\n\n## Observação\nPrograma criado exclusivamente para demonstração do grafo. Não representa curso real da SquadHub.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-curso.svg",
+    "contentPath": "conteudos/indicadores-curso.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-aula-01",
+    "title": "Perguntas antes dos gráficos",
+    "type": "aula",
+    "description": "Definir a decisão que cada indicador deve apoiar.",
+    "bodyMarkdown": "## Objetivo da aula\nDefinir a decisão que cada indicador deve apoiar.\n\n## Resumo\nPartir da pergunta de gestão antes de escolher o gráfico. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nEscrever três perguntas para uma reunião de operação.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-aula-01.svg",
+    "contentPath": "conteudos/indicadores-aula-01.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-aula-02",
+    "title": "Definição de indicadores",
+    "type": "aula",
+    "description": "Especificar cálculo, origem e periodicidade das métricas.",
+    "bodyMarkdown": "## Objetivo da aula\nEspecificar cálculo, origem e periodicidade das métricas.\n\n## Resumo\nRegistrar numerador, denominador, período e exceções. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nPreencher a ficha de definição de um indicador de aderência.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-aula-02.svg",
+    "contentPath": "conteudos/indicadores-aula-02.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-aula-03",
+    "title": "Qualidade e rastreabilidade",
+    "type": "aula",
+    "description": "Reconhecer dados ausentes e mudanças de significado.",
+    "bodyMarkdown": "## Objetivo da aula\nReconhecer dados ausentes e mudanças de significado.\n\n## Resumo\nDistinguir valor zero, informação ausente e dado ainda não atualizado. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nIdentificar riscos em uma base fictícia de tarefas.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-aula-03.svg",
+    "contentPath": "conteudos/indicadores-aula-03.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-aula-04",
+    "title": "Composição de um painel",
+    "type": "aula",
+    "description": "Organizar informações para leitura e ação.",
+    "bodyMarkdown": "## Objetivo da aula\nOrganizar informações para leitura e ação.\n\n## Resumo\nPriorizar contexto, comparação e detalhamento relevante. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nPlanejar um painel com visão geral e investigação de desvios.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "finalizado",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-aula-04.svg",
+    "contentPath": "conteudos/indicadores-aula-04.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  },
+  {
+    "id": "indicadores-aula-05",
+    "title": "Rotina de análise e melhoria",
+    "type": "aula",
+    "description": "Converter sinais do painel em ações acompanháveis.",
+    "bodyMarkdown": "## Objetivo da aula\nConverter sinais do painel em ações acompanháveis.\n\n## Resumo\nRegistrar hipótese, ação, responsável e data de revisão. A proposta é aplicar esse princípio a uma situação concreta da equipe, registrando as escolhas e os motivos.\n\n## Roteiro sugerido\n1. Apresentar o problema e o contexto.\n2. Explicar o princípio com um exemplo.\n3. Aplicar a atividade prática.\n4. Revisar a resposta e registrar dúvidas.\n\n## Atividade\nDocumentar uma decisão tomada a partir de um indicador.\n\n## Critério de conclusão\nA atividade contém uma resposta verificável e explica as decisões adotadas.\n\n## Material\nTexto demonstrativo. Não existe gravação associada a esta aula.",
+    "themes": [
+      "indicadores",
+      "operacoes",
+      "processos"
+    ],
+    "status": "em-producao",
+    "collectionId": "indicadores",
+    "thumbnailPath": "midias/indicadores-aula-05.svg",
+    "contentPath": "conteudos/indicadores-aula-05.md",
+    "material": {
+      "kind": "illustrative",
+      "isIllustrative": true,
+      "caption": "Prévia ilustrativa. Material fictício para demonstração."
+    },
+    "externalReference": null,
+    "isMock": true
+  }
+]

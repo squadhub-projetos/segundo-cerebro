@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Seu painel responde qual pergunta?">
+<rect width="960" height="540" fill="#141B24"/><rect x="0" width="12" height="540" fill="#EBC17A"/>
+<circle cx="890" cy="90" r="165" fill="#EBC17A" opacity=".08"/><circle cx="890" cy="90" r="115" fill="none" stroke="#EBC17A" opacity=".35"/>
+<text x="64" y="65" fill="#EBC17A" font-family="Arial,sans-serif" font-size="18" letter-spacing="3">ACERVO • DEMONSTRAÇÃO</text>
+<rect x="64" y="103" width="145" height="36" rx="18" fill="#EBC17A"/><text x="85" y="127" fill="#141B24" font-family="Arial,sans-serif" font-size="18">CRIATIVO</text>
+<text x="64" y="221" fill="#F1F4F7" font-family="Arial,sans-serif" font-weight="bold" font-size="46"><tspan x="64" dy="0">Seu painel responde qual</tspan><tspan x="64" dy="58">pergunta?</tspan></text>
+<path d="M64 410 H896" stroke="#37414E"/>
+<text x="64" y="453" fill="#C1CBD5" font-family="Arial,sans-serif" font-size="20">Indicadores e gestão de operações</text>
+<text x="64" y="496" fill="#8B98A8" font-family="Arial,sans-serif" font-size="15">CONTEÚDO FICTÍCIO • CAPA ILUSTRATIVA</text>
+</svg>

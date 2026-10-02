@@ -1,0 +1,30 @@
+[
+  {
+    "id": "gestao-projetos",
+    "label": "Gestão de projetos"
+  },
+  {
+    "id": "monday",
+    "label": "monday"
+  },
+  {
+    "id": "processos",
+    "label": "Processos"
+  },
+  {
+    "id": "crm",
+    "label": "CRM"
+  },
+  {
+    "id": "automacao",
+    "label": "Automação"
+  },
+  {
+    "id": "indicadores",
+    "label": "Indicadores"
+  },
+  {
+    "id": "operacoes",
+    "label": "Operações"
+  }
+]

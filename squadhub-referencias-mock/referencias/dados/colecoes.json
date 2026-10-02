@@ -1,0 +1,17 @@
+[
+  {
+    "id": "gestao",
+    "name": "Gestão de projetos com monday",
+    "color": "#A8D879"
+  },
+  {
+    "id": "crm",
+    "name": "Automação comercial e CRM",
+    "color": "#7CB8EF"
+  },
+  {
+    "id": "indicadores",
+    "name": "Indicadores e gestão de operações",
+    "color": "#EBC17A"
+  }
+]

@@ -1,0 +1,191 @@
+[
+  {
+    "id": "rel-001",
+    "source": "gestao-criativo-01",
+    "target": "gestao-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-002",
+    "source": "gestao-criativo-02",
+    "target": "gestao-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-003",
+    "source": "gestao-criativo-03",
+    "target": "gestao-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-004",
+    "source": "gestao-pagina",
+    "target": "gestao-curso",
+    "type": "apresenta",
+    "isMock": true
+  },
+  {
+    "id": "rel-005",
+    "source": "gestao-curso",
+    "target": "gestao-aula-01",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-006",
+    "source": "gestao-curso",
+    "target": "gestao-aula-02",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-007",
+    "source": "gestao-curso",
+    "target": "gestao-aula-03",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-008",
+    "source": "gestao-curso",
+    "target": "gestao-aula-04",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-009",
+    "source": "gestao-curso",
+    "target": "gestao-aula-05",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-010",
+    "source": "crm-criativo-01",
+    "target": "crm-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-011",
+    "source": "crm-criativo-02",
+    "target": "crm-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-012",
+    "source": "crm-criativo-03",
+    "target": "crm-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-013",
+    "source": "crm-pagina",
+    "target": "crm-curso",
+    "type": "apresenta",
+    "isMock": true
+  },
+  {
+    "id": "rel-014",
+    "source": "crm-curso",
+    "target": "crm-aula-01",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-015",
+    "source": "crm-curso",
+    "target": "crm-aula-02",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-016",
+    "source": "crm-curso",
+    "target": "crm-aula-03",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-017",
+    "source": "crm-curso",
+    "target": "crm-aula-04",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-018",
+    "source": "crm-curso",
+    "target": "crm-aula-05",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-019",
+    "source": "indicadores-criativo-01",
+    "target": "indicadores-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-020",
+    "source": "indicadores-criativo-02",
+    "target": "indicadores-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-021",
+    "source": "indicadores-criativo-03",
+    "target": "indicadores-pagina",
+    "type": "direciona-para",
+    "isMock": true
+  },
+  {
+    "id": "rel-022",
+    "source": "indicadores-pagina",
+    "target": "indicadores-curso",
+    "type": "apresenta",
+    "isMock": true
+  },
+  {
+    "id": "rel-023",
+    "source": "indicadores-curso",
+    "target": "indicadores-aula-01",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-024",
+    "source": "indicadores-curso",
+    "target": "indicadores-aula-02",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-025",
+    "source": "indicadores-curso",
+    "target": "indicadores-aula-03",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-026",
+    "source": "indicadores-curso",
+    "target": "indicadores-aula-04",
+    "type": "contem",
+    "isMock": true
+  },
+  {
+    "id": "rel-027",
+    "source": "indicadores-curso",
+    "target": "indicadores-aula-05",
+    "type": "contem",
+    "isMock": true
+  }
+]
