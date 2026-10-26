@@ -4,36 +4,37 @@ import { COLLECTIONS, THEMES, buildDemoData, setTaxonomy, validateDemo } from '.
 import { computeLayout } from '../lib/layout'
 import { copyTitle, planDuplicateOffset } from '../lib/duplicate'
 import { placeNode } from '../lib/spatial'
-import { inferRelation, newId, validateRelation } from '../lib/relations'
+import { hasRuleBetween, inferRelation, newId, validateRelation } from '../lib/relations'
 import { loadLive, loadState, saveLive, saveState } from '../lib/storage'
 import { IS_LIVE } from '../data/source'
 import { emptyData, isRemoteRelation, mergeRemote, overlayOf } from '../data/merge'
 import { mockProvider, mondayProvider } from '../data/providers'
 import { mondayWriter } from '../data/providers/mondayWriter'
-import type { WritableKind } from '../data/providers/mondayWriter'
+import type { InitialLink } from '../data/providers/mondayWriter'
+import type { SchemaPayload } from '../types/schema'
 
 export type LinkDraft = Pick<Relation, 'source' | 'target' | 'type'>
 export type SaveResult = { ok: true; id: string; warning?: string } | { ok: false; error: string }
-export type ConnectResult = { ok: true; relation: Relation } | { ok: false; error: string }
+export type ConnectResult = { ok: true; relation: Relation } | { ok: false; error: string; unconfigured?: { from: string; to: string } }
 export type SimpleResult = { ok: true } | { ok: false; error: string }
 
-const UNSUPPORTED = 'Este tipo de conexão ainda não possui armazenamento configurado na monday.'
-const WRITABLE: Content['type'][] = ['infoproduto', 'aula', 'youtube']
+const NOT_CONFIGURED = 'Este tipo de conexão ainda não está configurado.'
 const itemIdOf = (c: Content | undefined) => c?.sourceIds?.[0]
 const relationId = (r: Pick<Relation, 'type' | 'source' | 'target'>) => `rel:${r.type}:${r.source}>${r.target}`
 const reason = (prefix: string, error: unknown) => `${prefix} ${(error as Error)?.message ?? 'Erro desconhecido.'}`
 
 /**
- * Aula ↔ Infoproduto (relação `contem-aula`, infoproduto → aula) e Vídeo ↔ Infoproduto (`divulga`, vídeo → infoproduto) são
- * as únicas conexões com armazenamento definido na monday. Retorna qual lado é gravado (sempre a aula/o vídeo).
+ * Resolve uma relação do grafo em (conexão do schema, ids dos itens na monday). Quem decide como a ligação é guardada é o
+ * schema (registry) lido do servidor; o cliente só precisa dos ids. Retorna null se não houver regra ou se faltar id.
  */
-function writeTarget(contents: Content[], link: Pick<Relation, 'source' | 'target' | 'type'>) {
+function linkInfo(schema: SchemaPayload | null, contents: Content[], link: Pick<Relation, 'source' | 'target' | 'type'>) {
+  const conn = schema?.connections.find((c) => c.id === link.type && c.active)
   const s = contents.find((c) => c.id === link.source)
   const t = contents.find((c) => c.id === link.target)
-  if (!s || !t) return null
-  if (link.type === 'contem-aula' && s.type === 'infoproduto' && t.type === 'aula') return { childType: 'aula' as const, child: t, info: s }
-  if (link.type === 'divulga' && s.type === 'youtube' && t.type === 'infoproduto') return { childType: 'youtube' as const, child: s, info: t }
-  return null
+  if (!conn || !s || !t || s.type !== conn.source || t.type !== conn.target) return null
+  const sourceItemId = itemIdOf(s)
+  const targetItemId = itemIdOf(t)
+  return sourceItemId && targetItemId ? { connection: conn.id, sourceItemId, targetItemId } : null
 }
 
 const SAVE_DEBOUNCE_MS = 400
@@ -76,6 +77,8 @@ export function useStore() {
   const [loadError, setLoadError] = useState<LoadError | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [meta, setMeta] = useState<GraphPayloadMeta | null>(null)
+  const [schema, setSchema] = useState<SchemaPayload | null>(null)
+  const schemaRef = useRef<SchemaPayload | null>(null)
   const latest = useRef(data)
   const statusRef = useRef(status)
   const started = useRef(false)
@@ -112,11 +115,13 @@ export function useStore() {
       if (import.meta.env.DEV) {
         const count = (t: string) => payload.contents.filter((c) => c.type === t).length
         console.info(
-          `[SecondBrain] datasource: ${options.demo ? 'mock' : 'monday'} | contents: ${payload.contents.length} (infoproduto ${count('infoproduto')}, aula ${count('aula')}, youtube ${count('youtube')}) | relations: ${payload.relations.length} (aula↔infoproduto ${payload.meta.relationStats?.contemAula.unique ?? '?'}, vídeo↔infoproduto ${payload.meta.relationStats?.divulga.unique ?? '?'}, ignoradas ${payload.meta.relationStats?.ignored ?? '?'}) | collections: ${payload.collections.length}`,
+          `[SecondBrain] datasource: ${options.demo ? 'mock' : 'monday'} | contents: ${payload.contents.length} (infoproduto ${count('infoproduto')}, aula ${count('aula')}, youtube ${count('youtube')}) | relations: ${payload.relations.length} (arestas únicas por conexão: ${Object.entries(payload.meta.relationStats?.byConnection ?? {}).map(([k, v]) => `${k} ${v.unique}/${v.raw}`).join(', ')}; ignoradas ${payload.meta.relationStats?.ignored ?? '?'}) | collections: ${payload.collections.length}`,
         )
       }
       setData(mergeRemote(payload, overlay))
       setMeta(payload.meta)
+      schemaRef.current = payload.schema ?? null
+      setSchema(payload.schema ?? null)
       setStatus('ready')
       return true
     } catch (error) {
@@ -212,12 +217,10 @@ export function useStore() {
       const rel = d.relations.find((r) => r.id === id)
       if (!rel) return { ok: false, error: 'Conexão não encontrada.' }
       if (isRemoteRelation(rel)) {
-        const target = writeTarget(d.contents, rel)
-        const childItem = itemIdOf(target?.child)
-        const infoItem = itemIdOf(target?.info)
-        if (!target || !childItem || !infoItem) return { ok: false, error: UNSUPPORTED }
+        const info = linkInfo(schemaRef.current, d.contents, rel)
+        if (!info) return { ok: false, error: NOT_CONFIGURED }
         try {
-          await mondayWriter.unlink(target.childType, childItem, infoItem)
+          await mondayWriter.unlink(info.connection, info.sourceItemId, info.targetItemId)
         } catch (error) {
           return { ok: false, error: reason('Erro ao remover a conexão na monday.', error) }
         }
@@ -286,15 +289,17 @@ export function useStore() {
     async (content: Content, links: LinkDraft[], hint?: Position): Promise<SaveResult> => {
       const d = latest.current
       const existing = d.contents.find((c) => c.id === content.id)
-      if (!WRITABLE.includes(content.type)) return { ok: false, error: UNSUPPORTED }
-      const kind = content.type as WritableKind
+      const typeDef = schemaRef.current?.nodeTypes.find((t) => t.slug === content.type && t.active)
+      if (!typeDef) return { ok: false, error: 'Este tipo de conteúdo não está configurado na monday.' }
+      const kind = content.type
       const base = existing ? d.contents : [...d.contents, content]
       const others = d.relations.filter((r) => r.source !== content.id && r.target !== content.id)
       for (const link of links) {
         if (link.source !== content.id && link.target !== content.id) return { ok: false, error: 'O vínculo precisa envolver este conteúdo.' }
         const error = validateRelation(link, base, others)
         if (error) return { ok: false, error }
-        if (!writeTarget(base, link)) return { ok: false, error: UNSUPPORTED }
+        const conn = schemaRef.current?.connections.find((c) => c.id === link.type && c.active)
+        if (!conn) return { ok: false, error: NOT_CONFIGURED }
       }
       const otherOf = (l: LinkDraft) => base.find((c) => c.id === (l.source === content.id ? l.target : l.source))
       const wantedKey = (l: LinkDraft) => `${l.source}>${l.target}>${l.type}`
@@ -305,16 +310,16 @@ export function useStore() {
       }
 
       if (!existing) {
-        const createLinks: { type: WritableKind; itemId: string }[] = []
+        const createLinks: InitialLink[] = []
         for (const l of links) {
           const other = otherOf(l)
           const itemId = itemIdOf(other)
-          if (!other || !itemId) return { ok: false, error: UNSUPPORTED }
-          createLinks.push({ type: other.type as WritableKind, itemId })
+          if (!other || !itemId) return { ok: false, error: NOT_CONFIGURED }
+          createLinks.push({ connection: l.type, itemId, role: l.source === content.id ? 'source' : 'target' })
         }
         let created
         try {
-          created = await mondayWriter.create(kind, content.title, kind === 'aula' ? content.description : undefined, createLinks)
+          created = await mondayWriter.create(kind, content.title, typeDef.descriptionColumnId ? content.description : undefined, createLinks)
         } catch (error) {
           return { ok: false, error: reason('Erro ao criar o conteúdo na monday.', error) }
         }
@@ -345,7 +350,7 @@ export function useStore() {
       let current = existing
       const fields: { title?: string; description?: string } = {}
       if (content.title !== existing.title) fields.title = content.title
-      if (kind === 'aula' && content.description !== existing.description) fields.description = content.description
+      if (typeDef.descriptionColumnId && content.description !== existing.description) fields.description = content.description
       let failure: string | undefined
       if (Object.keys(fields).length) {
         try {
@@ -363,10 +368,10 @@ export function useStore() {
       const removals = mine.filter((r) => !wanted.has(wantedKey(r)))
       const additions = links.filter((l) => !have.has(wantedKey(l)))
       for (const r of removals) {
-        const t = writeTarget(base, r)
+        const t = linkInfo(schemaRef.current, base, r)
         try {
-          if (!t || !itemIdOf(t.child) || !itemIdOf(t.info)) throw new Error(UNSUPPORTED)
-          await mondayWriter.unlink(t.childType, itemIdOf(t.child)!, itemIdOf(t.info)!)
+          if (!t) throw new Error(NOT_CONFIGURED)
+          await mondayWriter.unlink(t.connection, t.sourceItemId, t.targetItemId)
           relations = relations.filter((x) => x.id !== r.id)
         } catch (error) {
           failure = reason('Erro ao remover uma conexão na monday.', error)
@@ -375,10 +380,10 @@ export function useStore() {
       }
       if (!failure) {
         for (const l of additions) {
-          const t = writeTarget(base, l)
+          const t = linkInfo(schemaRef.current, base, l)
           try {
-            if (!t || !itemIdOf(t.child) || !itemIdOf(t.info)) throw new Error(UNSUPPORTED)
-            await mondayWriter.link(t.childType, itemIdOf(t.child)!, itemIdOf(t.info)!)
+            if (!t) throw new Error(NOT_CONFIGURED)
+            await mondayWriter.link(t.connection, t.sourceItemId, t.targetItemId)
             relations = [...relations, { id: relationId(l), source: l.source, target: l.target, type: l.type, relationSource: 'monday' }]
           } catch (error) {
             failure = reason('Erro ao criar uma conexão na monday.', error)
@@ -398,16 +403,17 @@ export function useStore() {
     const a = d.contents.find((c) => c.id === aId)
     const b = d.contents.find((c) => c.id === bId)
     if (!a || !b) return { ok: false, error: 'Conteúdo não encontrado.' }
+    // Sem regra entre os dois tipos: oferece configurar a conexão (a tela Conexões abre já com origem e destino).
+    if (!hasRuleBetween(a.type, b.type)) {
+      return { ok: false, error: NOT_CONFIGURED, unconfigured: { from: a.type, to: b.type } }
+    }
     const inferred = inferRelation(d.contents, d.relations, aId, bId)
-    const link = inferred.ok ? inferred.relation : null
-    const target = link ? writeTarget(d.contents, link) : null
-    if (!inferred.ok) return { ok: false, error: /não podem ser conectados/.test(inferred.reason) ? UNSUPPORTED : inferred.reason }
-    if (!link || !target) return { ok: false, error: UNSUPPORTED }
-    const childItem = itemIdOf(target.child)
-    const infoItem = itemIdOf(target.info)
-    if (!childItem || !infoItem) return { ok: false, error: UNSUPPORTED }
+    if (!inferred.ok) return { ok: false, error: inferred.reason }
+    const link = inferred.relation
+    const info = linkInfo(schemaRef.current, d.contents, link)
+    if (!info) return { ok: false, error: NOT_CONFIGURED }
     try {
-      await mondayWriter.link(target.childType, childItem, infoItem)
+      await mondayWriter.link(info.connection, info.sourceItemId, info.targetItemId)
     } catch (error) {
       return { ok: false, error: reason('Erro ao criar a conexão na monday.', error) }
     }
@@ -432,12 +438,12 @@ export function useStore() {
     for (const id of ids) {
       const c = latest.current.contents.find((x) => x.id === id)
       const itemId = itemIdOf(c)
-      if (!c || !itemId || !WRITABLE.includes(c.type)) {
+      if (!c || !itemId || !schemaRef.current?.nodeTypes.some((t) => t.slug === c.type && t.active)) {
         deleted.push(id) // conteúdo local (sem item na monday)
         continue
       }
       try {
-        await mondayWriter.remove(c.type as WritableKind, itemId)
+        await mondayWriter.remove(c.type, itemId)
         deleted.push(id)
       } catch (e) {
         error = reason(`Erro ao excluir “${c.title}” na monday.`, e)
@@ -456,7 +462,7 @@ export function useStore() {
     let error: string | undefined
     for (const o of originals) {
       try {
-        const r = await mondayWriter.duplicate(o.type as WritableKind, itemIdOf(o)!)
+        const r = await mondayWriter.duplicate(o.type, itemIdOf(o)!)
         if (r.content) copies.push({ ...r.content, collectionId: o.collectionId })
       } catch (e) {
         error = reason(`Erro ao duplicar “${o.title}” na monday.`, e)
@@ -532,6 +538,7 @@ export function useStore() {
     loadError,
     refreshing,
     meta,
+    schema,
     reload: () => load({ refresh: true }),
     retry: () => load({ refresh: true }),
     useDemo: () => load({ refresh: false, demo: true }),

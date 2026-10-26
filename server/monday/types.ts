@@ -42,11 +42,8 @@ export interface RawBoard {
 
 export type BoardKey = 'infoproducts' | 'courses' | 'youtube'
 
-export interface RawBoards {
-  infoproducts: RawBoard
-  courses: RawBoard
-  youtube: RawBoard
-}
+/** Boards lidos, por slug do tipo de conteúdo. */
+export type RawBoards = Record<string, RawBoard>
 
 export interface MondayConfig {
   token: string
@@ -55,6 +52,4 @@ export interface MondayConfig {
   cacheSeconds: number
   /** `MONDAY_WRITE_ENABLED=0` deixa a implantação somente leitura. */
   writesEnabled: boolean
-  /** Grupo onde itens novos são criados (id do grupo na monday). Vazio: resolvido pelo título em `NEW_ITEM_GROUP_TITLE`. */
-  newItemGroups: Record<BoardKey, string>
 }

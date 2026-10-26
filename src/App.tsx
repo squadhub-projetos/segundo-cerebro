@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react'
 import { AlertTriangle, BoxSelect, Copy, Pencil, PanelRightOpen, Plus, Trash2, Wand2, X } from 'lucide-react'
-import type { Content, Filters, Positions } from './types'
+import type { Content, ContentType, Filters, Positions } from './types'
 import { sizeOf } from './lib/dimensions'
 import { EMPTY_FILTERS, countActiveFilters, filterContents, hasActiveFilters } from './lib/filters'
 import { boundsOf } from './lib/layout'
@@ -17,6 +17,15 @@ import { ContentForm } from './components/ContentForm'
 import { ALLOW_MOCK_FALLBACK } from './data/source'
 import { CONTENT_TYPES } from './components/meta'
 import { DetailPanel } from './components/DetailPanel'
+import { BrainSidebar } from './components/sidebar/BrainSidebar'
+import { BrainEmpty } from './components/BrainEmpty'
+import { AssistantPanel } from './components/assistant/AssistantPanel'
+import { useAssistant } from './state/useAssistant'
+import { ConnectionsView } from './components/connections/ConnectionsView'
+import type { ConnectionPrefill } from './components/connections/ConnectionsView'
+import { brainFromSchema } from './brains/fromSchema'
+import { BRAINS, nodeTypeIds } from './brains/registry'
+import { useShell } from './state/useShell'
 import { ActiveFilters, FilterMenu } from './components/FilterBar'
 import { EmptyResults } from './components/EmptyResults'
 import { FIT_OPTIONS, GraphView } from './components/GraphView'
@@ -57,7 +66,27 @@ function useDebouncedQuery(value: string, ms: number): string {
 
 function Shell() {
   const store = useStore()
-  const { data } = store
+  const shell = useShell()
+  const { view } = shell
+  const brain = useMemo(() => brainFromSchema(shell.brain, store.schema), [shell.brain, store.schema])
+  const [prefill, setPrefill] = useState<ConnectionPrefill | null>(null)
+  // O assistente é só de dados da monday. Depois de executar um plano, recarrega o mapa para mostrar o que foi criado.
+  const assistant = useAssistant(brain.id, { onExecuted: () => store.reload() })
+  const { checkStatus: checkAssistant } = assistant
+  useEffect(() => {
+    if (store.live && shell.assistantOpen) checkAssistant()
+  }, [store.live, shell.assistantOpen, checkAssistant])
+  const brainTypeIds = useMemo(() => nodeTypeIds(brain), [brain])
+  // Cada cérebro enxerga só o seu schema: com dados da monday, o mapa, os filtros, a busca e os formulários trabalham apenas
+  // com os nós dos tipos do cérebro ativo e com as relações entre eles.
+  const data = useMemo(() => {
+    if (!store.live) return store.data
+    const ids = new Set(brainTypeIds)
+    const contents = store.data.contents.filter((c) => ids.has(c.type))
+    const keep = new Set(contents.map((c) => c.id))
+    return { ...store.data, contents, relations: store.data.relations.filter((r) => keep.has(r.source) && keep.has(r.target)) }
+  }, [store.data, store.live, brainTypeIds])
+  const viewports = useRef<Record<string, { x: number; y: number; zoom: number }>>({})
   const { setCenter, getZoom, getViewport, setViewport, fitView, fitBounds, flowToScreenPosition, screenToFlowPosition } = useReactFlow()
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -69,7 +98,7 @@ function Shell() {
   const tweenFrame = useRef<number | undefined>(undefined)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
+  const [toast, setToast] = useState<{ id: number; text: string; action?: { label: string; onClick: () => void } } | null>(null)
   const [fresh, setFresh] = useState<{ edgeId: string; nodeId: string } | null>(null)
   const [deleteTargets, setDeleteTargets] = useState<Content[] | null>(null)
   const [leaving, setLeaving] = useState<Set<string>>(() => new Set())
@@ -188,12 +217,12 @@ function Shell() {
   // Escape fecha o painel de detalhes quando não há diálogo aberto.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || form || restoreOpen) return
+      if (e.key !== 'Escape' || form || restoreOpen || view !== 'map') return
       if (selectedId) setSelectedId(null)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [selectedId, form, restoreOpen])
+  }, [selectedId, form, restoreOpen, view])
 
   useEffect(
     () => () => {
@@ -213,12 +242,36 @@ function Shell() {
     toastTimer.current = window.setTimeout(() => setToast(null), 3200)
   }, [])
 
+  /** Aviso com uma ação (por exemplo, "Configurar conexão"). Fica visível por mais tempo. */
+  const notifyAction = useCallback((text: string, action: { label: string; onClick: () => void }) => {
+    window.clearTimeout(toastTimer.current)
+    setToast({ id: Date.now(), text, action })
+    toastTimer.current = window.setTimeout(() => setToast(null), 8000)
+  }, [])
+
+  /** Tipos sem regra de conexão: oferece abrir "Conexões" já com origem e destino preenchidos. */
+  const offerConfiguration = (aId: string, bId: string) => {
+    const a = data.contents.find((c) => c.id === aId)
+    const b = data.contents.find((c) => c.id === bId)
+    if (!a || !b) return
+    notifyAction('Este tipo de conexão ainda não está configurado.', {
+      label: 'Configurar conexão',
+      onClick: () => {
+        setToast(null)
+        setPrefill({ source: a.type, target: b.type })
+        shell.setView('connections')
+      },
+    })
+  }
+
   /** Conexão criada no mapa: persiste pela mesma lista de relações e anima a chegada. */
   const connectNodes = async (aId: string, bId: string) => {
     if (store.live) notify('Gravando conexão na monday…')
     const result = await store.connect(aId, bId)
     if (!result.ok) {
-      notify(result.error)
+      if (result.unconfigured) {
+        offerConfiguration(aId, bId)
+      } else notify(result.error)
       return
     }
     window.clearTimeout(freshTimer.current)
@@ -518,7 +571,7 @@ function Shell() {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
       const target = e.target as HTMLElement | null
       if (target?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], .popover')) return
-      if (form || restoreOpen || deleteTargets || menu) return
+      if (form || restoreOpen || deleteTargets || menu || view !== 'map') return
       const ids = effGroup.length >= 2 ? effGroup : selected ? [selected.id] : []
       if (ids.length === 0) return
       e.preventDefault()
@@ -535,7 +588,72 @@ function Shell() {
     return ids
   }, [flash, menu])
 
-  const availableTypes = useMemo(() => CONTENT_TYPES.filter((t) => data.contents.some((c) => c.type === t)), [data.contents])
+  // Com dados live, as opções de tipo vêm do cérebro ativo; na demonstração (mock) valem os tipos antigos.
+  const availableTypes = useMemo(
+    () => (store.live ? brainTypeIds : CONTENT_TYPES).filter((t) => data.contents.some((c) => c.type === t)),
+    [data.contents, store.live, brainTypeIds],
+  )
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const c of data.contents) counts[c.type] = (counts[c.type] ?? 0) + 1
+    return counts
+  }, [data.contents])
+  const noTypes = store.live && brainTypeIds.length === 0
+  const noContents = store.live && !noTypes && data.contents.length === 0
+  const describableTypes = useMemo(() => (store.schema?.nodeTypes ?? []).filter((t) => t.descriptionColumnId).map((t) => t.slug), [store.schema])
+
+  const openNew = () => {
+    if (noTypes) {
+      // Cérebro sem tipos: não há o que criar; leva à configuração da estrutura.
+      shell.setView('connections')
+      notify('Este cérebro ainda não possui tipos. Crie o primeiro tipo de conteúdo.')
+      return
+    }
+    shell.setView('map')
+    setForm({ mode: 'new' })
+  }
+
+  /** Enquadra um conjunto de itens (por exemplo, os criados pelo assistente) sem ampliar demais. */
+  const frameIds = (ids: string[]) => {
+    const items = data.contents.filter((c) => ids.includes(c.id) && data.positions[c.id])
+    if (items.length === 0) {
+      notify('Esses itens ainda não aparecem no mapa. Use "Atualizar dados".')
+      return
+    }
+    const b = boundsOf(items, data.positions)
+    const area = workspaceRef.current?.getBoundingClientRect()
+    const w = (area?.width ?? 900) - EDGE_MARGIN * 2
+    const h = (area?.height ?? 600) - DOCK_SPACE - EDGE_MARGIN * 2
+    const z = Math.max(Math.min(FRAME_MAX_ZOOM, w / (b.width + 80), h / (b.height + 80)), 0.1)
+    setViewport({ x: EDGE_MARGIN + (w - b.width * z) / 2 - b.x * z, y: EDGE_MARGIN + (h - b.height * z) / 2 - b.y * z, zoom: z }, { duration: motionDuration(MOTION.camera) })
+  }
+
+  /** "Ver no mapa": vai ao Mapa, seleciona os itens e os enquadra (em telas estreitas, recolhe o chat). */
+  const viewOnMap = (ids: string[]) => {
+    shell.setView('map')
+    if (!isDesktop()) shell.closeAssistant()
+    clearFilters()
+    setSelection(ids)
+    window.setTimeout(() => frameIds(ids), 160)
+  }
+
+  /** Troca de cérebro: guarda a câmera do atual, limpa seleção/filtros (que são do cérebro) e restaura a câmera do destino. */
+  const switchBrain = (id: string) => {
+    if (id === shell.activeBrainId) return
+    viewports.current[shell.activeBrainId] = getViewport()
+    if (!shell.setActiveBrain(id)) return
+    setSelectedId(null)
+    setGroup([])
+    setForm(null)
+    setMenu(null)
+    setPreviewId(null)
+    clearFilters()
+    window.setTimeout(() => {
+      const saved = viewports.current[id]
+      if (saved) setViewport(saved, { duration: 0 })
+      else fitView({ ...FIT_OPTIONS, duration: 0 })
+    }, 90)
+  }
 
   const refreshData = async () => {
     const ok = await store.reload()
@@ -589,9 +707,24 @@ function Shell() {
   const editing = form?.mode === 'edit' ? (data.contents.find((c) => c.id === form.id) ?? null) : null
 
   return (
+    <div className="shell">
+    <BrainSidebar
+      brain={brain}
+      brains={BRAINS}
+      view={view}
+      collapsed={shell.sidebarCollapsed}
+      onToggle={shell.toggleSidebar}
+      onView={shell.setView}
+      onNew={openNew}
+      onSelectBrain={switchBrain}
+    />
     <div className="app">
       <TopBar
+        brainName={brain.name}
+        onToggleAssistant={store.live ? shell.toggleAssistant : undefined}
+        assistantOpen={shell.assistantOpen}
         searchBox={
+          view !== 'map' ? null : (
           <SearchBox
             value={filters.query}
             onChange={(query) => applyFilters({ ...filters, query })}
@@ -603,8 +736,10 @@ function Shell() {
             onPick={goTo}
             onPreview={setPreviewId}
           />
+          )
         }
         filterMenu={
+          view !== 'map' ? null : (
           <FilterMenu
             filters={filters}
             activeCount={countActiveFilters(filters)}
@@ -614,8 +749,9 @@ function Shell() {
             onClear={clearFilters}
             types={availableTypes}
           />
+          )
         }
-        onNew={() => setForm({ mode: 'new' })}
+        onNew={openNew}
         onRestoreDemo={store.live ? undefined : () => setRestoreOpen(true)}
         onRefresh={store.live ? refreshData : undefined}
         refreshing={store.refreshing}
@@ -641,7 +777,11 @@ function Shell() {
         </div>
       )}
 
-      <main className="workspace" ref={workspaceRef}>
+      <div className="stage">
+      <main className="workspace" ref={workspaceRef} inert={view !== 'map'}>
+        {(noTypes || noContents) && (
+          <BrainEmpty brainName={brain.name} kind={noTypes ? 'no-types' : 'no-contents'} onConfigure={() => shell.setView('connections')} onNew={openNew} />
+        )}
         <GraphView
           contents={data.contents}
           relations={data.relations}
@@ -660,6 +800,7 @@ function Shell() {
           onNodeMenu={openNodeMenu}
           onConnect={connectNodes}
           onNotify={notify}
+          onUnconfigured={store.live ? offerConfiguration : undefined}
           onRemoveRelation={removeRelation}
           matchInfo={result.info}
           resultMode={hasActiveFilters(logicalFilters)}
@@ -677,7 +818,7 @@ function Shell() {
           onClear={clearFilters}
           onFrame={frameResults}
         />
-        {visibleContents.length === 0 && (
+        {visibleContents.length === 0 && data.contents.length > 0 && (
           <EmptyResults
             query={logicalFilters.query.trim()}
             filters={logicalFilters}
@@ -700,6 +841,22 @@ function Shell() {
           />
         )}
       </main>
+      {view === 'connections' && (
+        <ConnectionsView
+          key={brain.id}
+          brain={brain}
+          schema={store.schema}
+          counts={typeCounts}
+          prefill={prefill}
+          onPrefillConsumed={() => setPrefill(null)}
+          onChanged={async (message) => {
+            notify('Criado na monday. Atualizando a tela…')
+            const ok = await store.reload()
+            notify(ok ? message : 'Criado na monday, mas não foi possível atualizar a tela. Use "Atualizar dados".')
+          }}
+        />
+      )}
+      </div>
 
       {form && (form.mode === 'new' || editing) && (
         <ContentForm
@@ -708,6 +865,8 @@ function Shell() {
           relations={data.relations}
           onCancel={() => setForm(null)}
           onSave={handleSave}
+          types={store.live ? (brainTypeIds as ContentType[]) : undefined}
+          describable={describableTypes}
         />
       )}
 
@@ -728,7 +887,7 @@ function Shell() {
 
       {menu && <ContextMenu x={menu.x} y={menu.y} title={menuItems().title} items={menuItems().items} onAction={runMenuAction} onClose={closeMenu} />}
 
-      {toast && <Toast key={toast.id} text={toast.text} />}
+      {toast && <Toast key={toast.id} text={toast.text} action={toast.action} />}
 
       {restoreOpen && (
         <ConfirmDialog
@@ -743,6 +902,26 @@ function Shell() {
           </p>
         </ConfirmDialog>
       )}
+    </div>
+    {store.live && (
+      <AssistantPanel
+        open={shell.assistantOpen}
+        brainName={brain.name}
+        messages={assistant.messages}
+        sending={assistant.sending}
+        enabled={assistant.enabled}
+        onClose={shell.closeAssistant}
+        onSend={(text) => void assistant.send(text)}
+        onConfirm={(id) => void assistant.confirm(id)}
+        onCancel={assistant.cancel}
+        onAdjust={assistant.adjust}
+        onViewOnMap={viewOnMap}
+        onFrame={(ids) => {
+          shell.setView('map')
+          window.setTimeout(() => frameIds(ids), 160)
+        }}
+      />
+    )}
     </div>
   )
 }

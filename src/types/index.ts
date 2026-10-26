@@ -1,10 +1,12 @@
+import type { SchemaPayload } from './schema'
+
 /**
  * Tipos de conteúdo. O conjunto é aberto a novas camadas: o modelo não assume níveis fixos.
  * Legados da demonstração: criativo, pagina, curso. Modelo live: infoproduto, aula, youtube.
  */
-export type ContentType = 'criativo' | 'pagina' | 'curso' | 'aula' | 'infoproduto' | 'youtube'
+export type ContentType = string
 export type ContentStatus = 'publicado' | 'finalizado' | 'em-producao'
-export type RelationType = 'direciona-para' | 'apresenta' | 'contem' | 'contem-aula' | 'divulga'
+export type RelationType = string
 
 /** Origem de um conteúdo. */
 export type ContentSource = 'mock' | 'monday' | 'local'
@@ -92,7 +94,7 @@ export interface GraphPayloadMeta {
   /** Relações vindas explicitamente da monday e relações inferidas (temporárias). */
   explicitRelations: number
   /** Contagem de ligações lidas da monday (bruto, nos dois lados) × arestas únicas geradas. */
-  relationStats?: { contemAula: { raw: number; unique: number }; divulga: { raw: number; unique: number }; ignored: number }
+  relationStats?: { byConnection: Record<string, { raw: number; unique: number }>; ignored: number }
   inferredRelations: number
   /** Aulas que consolidaram mais de um item da monday. */
   mergedLessons: number
@@ -106,4 +108,6 @@ export interface GraphPayload {
   collections: Collection[]
   themes: Theme[]
   meta: GraphPayloadMeta
+  /** Estrutura (tipos e conexões) vigente na monday. Ausente na demonstração. */
+  schema?: SchemaPayload
 }

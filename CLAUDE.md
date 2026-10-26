@@ -58,7 +58,22 @@ monday.com; esta solução própria organiza e visualiza as conexões entre cont
 `npm.cmd run dev`, `npm.cmd run build`, `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd run verify:data`.
 
 ## Dados live (monday)
-- Leitura: `server/monday/{client,normalize,handler}.ts` → `api/graph.ts`/`api/schema.ts` (+ middleware em `vite.config.ts`) → `src/data/providers/*` → `useStore` (`mergeRemote` em `src/data/merge.ts` junta só layout local: posições/fixações).
-- Escrita: `server/monday/mutations.ts` (`POST /api/mutate`, ops create/update/delete/link/unlink/duplicate) ← `src/data/providers/mondayWriter.ts` ← funções `*Remote` do `useStore`. O estado local só muda DEPOIS do sucesso na monday. Relação sempre gravada no lado da aula/vídeo com leitura prévia da lista (nunca sobrescrever).
-- Um nó por item da monday (sem fusão por nome); grupo = metadado; arestas só de linked items (`relationSource: 'monday'`). Ids: `info:`/`lesson:`/`yt:` + id do item.
-- Nunca colocar token no cliente/`VITE_`, nem logá-lo. Não criar colunas/grupos na monday. Testes de escrita com itens `[TESTE]` removidos ao final.
+- Schema: tipos (1 board cada) e conexões (1 coluna Connect Boards cada) ficam nos boards globais "SC | Estrutura" e "SC | Relações" (`server/monday/registry.ts`), isolados pela coluna Brain ID; boards de tipos novos se chamam `SC | {Cérebro} | {Tipo (plural)}`; os 3 boards legados do Conteúdo mantêm o nome; padrões núcleo em `src/brains/content/core.ts`. O servidor inclui `schema` no `/api/graph`; `applySchema` (`src/lib/schemaRuntime.ts`) registra rótulos, ícones, tamanhos e regras de relação nas tabelas de módulo. Nada de tipos/regras fixos no mapa.
+- Leitura: `server/monday/{client,registry,normalize,handler}.ts` → `api/graph.ts`/`api/schema.ts` (+ middleware em `vite.config.ts`) → `src/data/providers/*` → `useStore` (`mergeRemote` junta só layout local: posições/fixações). Ligações lidas dos DOIS lados da coluna e deduplicadas por par de ids.
+- Escrita de itens: `server/monday/mutations.ts` (`POST /api/mutate`; link/unlink por id de conexão do schema, lê a lista atual antes de gravar, respeita cardinalidade) ← `mondayWriter.ts` ← funções `*Remote` do `useStore`. O estado local só muda DEPOIS do sucesso na monday.
+- Estrutura: `server/monday/structure.ts` (`/api/structure`: init, preview/create de tipo e de conexão). Protegida por `MONDAY_STRUCTURE_ENABLED` + `SCHEMA_ADMIN_KEY` (obrigatória na Vercel). Criar coluna Connect Boards exige API 2025-10+. Board novo vem com item "Task 1": é removido na criação. Nunca apagar board/coluna automaticamente; testes só com `[TESTE]` e limpar depois.
+- Um nó por item da monday (sem fusão por nome); grupo = metadado; arestas só de linked items (`relationSource: 'monday'`). Ids: `<prefixo do tipo>:<id do item>`.
+- Nunca colocar token no cliente/`VITE_`, nem logá-lo.
+
+## Cérebros e navegação
+- `src/brains/`: `types.ts` (BrainConfig declarativo), `registry.ts` (lista `BRAINS`, `resolveBrainId`), `<id>/config.ts` (content habilitado; projects e marketing em preview, `enabled: false`). A config só descreve a interface (tipos, conexões `hierarchy|association`, fonte); o servidor continua sendo a autoridade de persistência.
+- Novo cérebro: criar `src/brains/<id>/config.ts`, incluir em `BRAINS`, `enabled: true` e uma fonte de dados.
+- `src/state/useShell.ts`: cérebro ativo, tela (`map|connections`, sem router) e barra lateral; preferências em `squadhub:segundo-cerebro:ui:*` (separadas dos dados).
+- UI: `components/sidebar/BrainSidebar.tsx`, `components/brain-selector/BrainSelector.tsx`, `components/connections/ConnectionsView.tsx` (meta-grafo informativo dos tipos). Estilos em `styles/shell.css`.
+- O mapa fica montado (`inert`) ao abrir Conexões, preservando câmera, seleção e posições; nada é refeito na monday ao trocar de tela.
+- Cérebros (`src/brains/catalog.ts`): Conteúdo, Projetos e Marketing estão habilitados; Projetos e Marketing nascem VAZIOS e são construídos pela interface (nenhum tipo é criado por código). O app filtra tudo pelo `brainId` do cérebro ativo (tipos, conexões, mapa, filtros, formulários, busca); posições são por nó (ids únicos) e o layout é calculado por cérebro; câmera e tela (mapa/conexões) são guardadas por cérebro.
+
+## Assistente (IA)
+- Servidor: `server/ai/` (`client.ts` Responses API sem estado/`store:false`, `prompt.ts` instrução central única, `tools.ts` ferramentas, `planner.ts` ciclo de ferramentas, `plan.ts` validação do plano, `executor.ts` execução, `handler.ts` endpoints). Rotas `POST /api/ai/chat` (propõe) e `POST /api/ai/execute` (executa o plano confirmado). Cliente: `src/state/useAssistant.ts`, `components/assistant/AssistantPanel.tsx`.
+- Regra de ouro: a IA NUNCA grava. `create_content`/`connect_content` só registram o plano; a execução é separada, revalida cada ação (`PlanBuilder.ingest`) e usa `runMutation`. Sem ferramentas de exclusão, de schema ou de GraphQL.
+- A IA descobre tipos e conexões do cérebro ativo pelo schema (nada fixo). Não mostrar ids/slugs ao usuário. OPENAI_API_KEY só no servidor.

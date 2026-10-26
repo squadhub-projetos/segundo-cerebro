@@ -67,6 +67,7 @@ interface Props {
   onConnect: (aId: string, bId: string) => void
   /** Mensagem curta (por exemplo, conexão inválida ou duplicada). */
   onNotify: (message: string) => void
+  onUnconfigured?: (aId: string, bId: string) => void
   onRemoveRelation: (id: string) => void
   onSelect: (id: string | null) => void
   onMove: (id: string, position: Position) => void
@@ -268,6 +269,7 @@ export function GraphView({
   onNodeMenu,
   onConnect,
   onNotify,
+  onUnconfigured,
   onRemoveRelation,
   onSelect,
   onMove,
@@ -594,6 +596,7 @@ export function GraphView({
           selectedId={selectedId}
           onConnect={onConnect}
           onNotify={onNotify}
+          onUnconfigured={onUnconfigured}
           onBusy={handleBusy}
         />
         <Panel position="bottom-center" className="dock-panel">

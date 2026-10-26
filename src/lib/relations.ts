@@ -60,7 +60,12 @@ export const RELATION_TYPES = Object.keys(RELATION_RULES) as RelationType[]
 
 export function isCompatible(type: RelationType, sourceType: ContentType, targetType: ContentType) {
   const rule = RELATION_RULES[type]
-  return rule.source === sourceType && rule.target === targetType
+  return Boolean(rule) && rule.source === sourceType && rule.target === targetType
+}
+
+/** Existe alguma regra (em qualquer direção) entre estes dois tipos? */
+export function hasRuleBetween(a: ContentType, b: ContentType): boolean {
+  return RELATION_TYPES.some((t) => isCompatible(t, a, b) || isCompatible(t, b, a))
 }
 
 /** Opções de vínculo para um tipo: papel de origem ou de destino. */
@@ -144,7 +149,7 @@ export function inferRelation(contents: Content[], relations: Relation[], aId: s
     if (found) break
   }
   if (!found) {
-    return { ok: false, reason: `${TYPE_NAME[a.type]} e ${TYPE_NAME[b.type].toLowerCase()} não podem ser conectados.` }
+    return { ok: false, reason: `${TYPE_NAME[a.type] ?? a.type} e ${(TYPE_NAME[b.type] ?? b.type).toLowerCase()} não podem ser conectados.` }
   }
   const { source, target, type } = found
   if (relations.some((r) => r.source === source && r.target === target && r.type === type)) {

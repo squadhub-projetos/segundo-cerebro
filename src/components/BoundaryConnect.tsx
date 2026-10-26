@@ -5,7 +5,7 @@ import { getNearestPointOnNodeBoundary } from '../lib/boundary'
 import type { BoundaryHit } from '../lib/boundary'
 import { NODE_RADIUS, sizeOf } from '../lib/dimensions'
 import { prefersReducedMotion } from '../lib/motion'
-import { inferRelation } from '../lib/relations'
+import { hasRuleBetween, inferRelation } from '../lib/relations'
 import { CONNECTION_INTERACTION_MIN_ZOOM } from '../lib/zoom'
 
 /** Faixa de interação em px de TELA (convertida pelo zoom): para dentro e para fora do contorno. */
@@ -24,6 +24,8 @@ interface Props {
   selectedId: string | null
   onConnect: (aId: string, bId: string) => void
   onNotify: (message: string) => void
+  /** Soltou sobre um tipo SEM regra de conexão (só com dados da monday): oferece configurar a conexão. */
+  onUnconfigured?: (aId: string, bId: string) => void
   /** Avisa o grafo quando uma conexão começa/termina (limpa o hover, por exemplo). */
   onBusy: (busy: boolean) => void
 }
@@ -65,7 +67,7 @@ function curve(o: BoundaryHit, e: { x: number; y: number }, en: { nx: number; ny
  * exatamente nesse ponto. O alvo também ganha indicador no perímetro e encaixe visual. Tudo é feito com refs e
  * requestAnimationFrame, sem estado React por movimento do mouse.
  */
-export function BoundaryConnect({ contents, relations, positions, presentIds, selectedId, onConnect, onNotify, onBusy }: Props) {
+export function BoundaryConnect({ contents, relations, positions, presentIds, selectedId, onConnect, onNotify, onUnconfigured, onBusy }: Props) {
   const api = useStoreApi()
   const layerRef = useRef<HTMLDivElement>(null)
   const indRef = useRef<HTMLDivElement>(null)
@@ -76,9 +78,9 @@ export function BoundaryConnect({ contents, relations, positions, presentIds, se
   const flowRef = useRef<SVGPathElement>(null)
   const [ghost, setGhost] = useState<Ghost | null>(null)
 
-  const dataRef = useRef({ contents, relations, positions, presentIds, selectedId, onConnect, onNotify, onBusy })
+  const dataRef = useRef({ contents, relations, positions, presentIds, selectedId, onConnect, onNotify, onUnconfigured, onBusy })
   useEffect(() => {
-    dataRef.current = { contents, relations, positions, presentIds, selectedId, onConnect, onNotify, onBusy }
+    dataRef.current = { contents, relations, positions, presentIds, selectedId, onConnect, onNotify, onUnconfigured, onBusy }
   })
 
   useEffect(() => {
@@ -205,7 +207,13 @@ export function BoundaryConnect({ contents, relations, positions, presentIds, se
         dataRef.current.onConnect(from, target)
         setGhost({ id: Date.now(), path: d, kind: 'settle' })
       } else {
-        if (commit && reason && done.candidateId) dataRef.current.onNotify(reason)
+        if (commit && reason && done.candidateId) {
+          const cur = dataRef.current
+          const a = cur.contents.find((c) => c.id === from)
+          const b = cur.contents.find((c) => c.id === done.candidateId)
+          if (cur.onUnconfigured && a && b && !hasRuleBetween(a.type, b.type)) cur.onUnconfigured(a.id, b.id)
+          else cur.onNotify(reason)
+        }
         setGhost({ id: Date.now(), path: d, kind: 'retract' })
       }
     }

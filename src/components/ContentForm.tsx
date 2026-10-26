@@ -17,15 +17,19 @@ interface Props {
   relations: Relation[]
   onCancel: () => void
   onSave: (content: Content, links: LinkDraft[]) => Promise<SaveResult>
+  /** Tipos oferecidos (vêm do cérebro ativo); sem valor, usa os da demonstração. */
+  types?: ContentType[]
+  /** Tipos cujo board tem coluna de descrição (vem do schema). */
+  describable?: ContentType[]
 }
 
 const sameLink = (a: LinkDraft, b: LinkDraft) => a.source === b.source && a.target === b.target && a.type === b.type
 
-export function ContentForm({ existing, contents, relations, onCancel, onSave }: Props) {
+export function ContentForm({ existing, contents, relations, onCancel, onSave, types = SELECTABLE_TYPES, describable = [] }: Props) {
   const uid = useId()
   const [id] = useState(() => existing?.id ?? newId('conteudo'))
   const [title, setTitle] = useState(existing?.title ?? '')
-  const [type, setType] = useState<ContentType>(existing?.type ?? (SELECTABLE_TYPES.includes('aula') ? 'aula' : SELECTABLE_TYPES[0]))
+  const [type, setType] = useState<ContentType>(existing?.type ?? types[0])
   const [description, setDescription] = useState(existing?.description ?? '')
   const [body, setBody] = useState(existing?.bodyMarkdown ?? '')
   const [themes, setThemes] = useState<string[]>(existing?.themes ?? [])
@@ -168,7 +172,7 @@ export function ContentForm({ existing, contents, relations, onCancel, onSave }:
                 Tipo
               </span>
               <div className="seg">
-                {SELECTABLE_TYPES.map((t) => (
+                {types.map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -206,7 +210,7 @@ export function ContentForm({ existing, contents, relations, onCancel, onSave }:
             )}
           </div>
 
-          {(!IS_LIVE || type === 'aula') && (
+          {(!IS_LIVE || describable.includes(type)) && (
           <div className="field">
             <label htmlFor={`${uid}-descricao`}>Descrição</label>
             <textarea id={`${uid}-descricao`} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />

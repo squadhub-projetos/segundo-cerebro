@@ -1,66 +1,25 @@
 import { MondayError, fetchItem, fetchSchema, gql } from './client.js'
-import type { BoardSchema } from './client.js'
-import { NODE_PREFIX, buildContent, relationIds, themeOf } from './normalize.js'
-import type { BoardKey, MondayConfig, RawBoard, RawItem } from './types.js'
+import { buildContent, relationIds, themeOf } from './normalize.js'
+import { RequestError, firstGroupId } from './registry.js'
+import type { MondayConfig, RawBoard, RawItem } from './types.js'
 import type { Content, Theme } from '../../src/types/index.js'
+import type { ConnectionDef, NodeTypeDef, SchemaPayload } from '../../src/types/schema.js'
+
+export { RequestError }
 
 /**
- * Escrita na monday (única parte do servidor que envia mutations). Só usa colunas e quadros existentes: nenhuma coluna ou
- * grupo é criado. A relação Aula/Vídeo ↔ Infoproduto é sempre gravada no lado da AULA ou do VÍDEO, lendo antes a lista atual
- * (a coluna Connect Boards é substituída por inteiro; sem ler antes, outras ligações seriam apagadas).
+ * Escrita de ITENS na monday (criar, editar, excluir, duplicar e ligar/desligar). Dirigida pelo schema: o tipo diz qual board
+ * usar e a conexão diz qual coluna Connect Boards guarda a ligação (e em qual lado). Nenhuma coluna ou grupo é criado aqui
+ * (isso é estrutura: ver `structure.ts`). A ligação é sempre gravada lendo ANTES a lista atual, porque a coluna é substituída
+ * por inteiro; sem isso, as outras ligações do item seriam apagadas.
  */
-
-/** Colunas fixas (descrição da aula). As colunas de RELAÇÃO são resolvidas pelo schema (veja `relationColumn`). */
-export const COLUMNS = {
-  /** Descrição da aula (long text). */
-  lessonDescription: 'long_text_mm7rh2ga',
-} as const
-
-const SCHEMA_TTL_MS = 60_000
-const schemaCache = new Map<string, { at: number; schema: BoardSchema }>()
-
-async function schemaOf(config: MondayConfig, boardId: string): Promise<BoardSchema> {
-  const hit = schemaCache.get(boardId)
-  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.schema
-  const schema = await fetchSchema(config, boardId)
-  schemaCache.set(boardId, { at: Date.now(), schema })
-  return schema
-}
-
-function targetBoards(settings: string | null | undefined): string[] {
-  try {
-    const parsed = JSON.parse(settings ?? '{}') as { boardIds?: (number | string)[]; boardId?: number | string }
-    return [...(parsed.boardIds ?? []), ...(parsed.boardId !== undefined ? [parsed.boardId] : [])].map(String)
-  } catch {
-    return []
-  }
-}
-
-/**
- * Coluna Connect Boards do quadro da aula/vídeo que aponta para o quadro de Infoprodutos. É descoberta no schema a cada uso
- * (cache curto): os ids das colunas mudam quando alguém recria a coluna na monday, e um id fixo passaria a falhar.
- */
-export async function relationColumn(config: MondayConfig, child: 'aula' | 'youtube'): Promise<string> {
-  const board = config.boards[BOARD_OF[child]]
-  const schema = await schemaOf(config, board)
-  const candidates = schema.columns.filter((c) => c.type === 'board_relation' && targetBoards(c.settings_str).includes(config.boards.infoproducts))
-  if (candidates.length === 0) {
-    throw new MondayError('monday_error', `O quadro ${schema.name} não tem uma coluna Connect Boards apontando para Infoprodutos.`)
-  }
-  return (candidates.find((c) => /infoproduto/i.test(c.title)) ?? candidates[0]).id
-}
-
-export type NodeKind = 'infoproduto' | 'aula' | 'youtube'
-const BOARD_OF: Record<NodeKind, BoardKey> = { infoproduto: 'infoproducts', aula: 'courses', youtube: 'youtube' }
-
-export class RequestError extends Error {}
 
 export type Op =
-  | { op: 'create'; type: NodeKind; title: string; description?: string; links?: { type: NodeKind; itemId: string }[] }
-  | { op: 'update'; type: NodeKind; itemId: string; title?: string; description?: string }
-  | { op: 'delete'; type: NodeKind; itemId: string }
-  | { op: 'link' | 'unlink'; childType: 'aula' | 'youtube'; childItemId: string; infoItemId: string }
-  | { op: 'duplicate'; type: NodeKind; itemId: string }
+  | { op: 'create'; type: string; title: string; description?: string; links?: { connection: string; itemId: string; role: 'source' | 'target' }[] }
+  | { op: 'update'; type: string; itemId: string; title?: string; description?: string }
+  | { op: 'delete'; type: string; itemId: string }
+  | { op: 'link' | 'unlink'; connection: string; sourceItemId: string; targetItemId: string }
+  | { op: 'duplicate'; type: string; itemId: string }
 
 export interface MutationResult {
   ok: true
@@ -73,40 +32,39 @@ export interface MutationResult {
 }
 
 const isId = (v: unknown): v is string => typeof v === 'string' && /^\d{1,20}$/.test(v)
-const isKind = (v: unknown): v is NodeKind => v === 'infoproduto' || v === 'aula' || v === 'youtube'
+const isSlug = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9-]{1,60}$/.test(v)
 
-/** Valida o corpo recebido do navegador (nunca confiamos no formato). */
+/** Valida o corpo recebido do navegador (nunca confiamos no formato). Os slugs são conferidos contra o schema depois. */
 export function parseOp(body: unknown): Op {
   const b = (body ?? {}) as Record<string, unknown>
   const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : undefined)
   switch (b.op) {
     case 'create': {
       const title = text(b.title, 255)?.trim()
-      if (!isKind(b.type) || !title) throw new RequestError('Informe o tipo e o título.')
-      const links = Array.isArray(b.links) ? b.links : []
-      const parsed = links.map((l) => {
-        const o = l as { type?: unknown; itemId?: unknown }
-        if (!isKind(o.type) || !isId(o.itemId)) throw new RequestError('Vínculo inválido.')
-        return { type: o.type, itemId: o.itemId }
+      if (!isSlug(b.type) || !title) throw new RequestError('Informe o tipo e o título.')
+      const links = (Array.isArray(b.links) ? b.links : []).map((l) => {
+        const o = l as { connection?: unknown; itemId?: unknown; role?: unknown }
+        if (!isSlug(o.connection) || !isId(o.itemId) || (o.role !== 'source' && o.role !== 'target')) throw new RequestError('Vínculo inválido.')
+        return { connection: o.connection, itemId: o.itemId, role: o.role as 'source' | 'target' }
       })
-      return { op: 'create', type: b.type, title, description: text(b.description, 20000), links: parsed }
+      return { op: 'create', type: b.type, title, description: text(b.description, 20000), links }
     }
     case 'update': {
-      if (!isKind(b.type) || !isId(b.itemId)) throw new RequestError('Item inválido.')
+      if (!isSlug(b.type) || !isId(b.itemId)) throw new RequestError('Item inválido.')
       const title = text(b.title, 255)?.trim()
       if (b.title !== undefined && !title) throw new RequestError('O título não pode ficar vazio.')
       return { op: 'update', type: b.type, itemId: b.itemId, title, description: text(b.description, 20000) }
     }
     case 'delete':
     case 'duplicate':
-      if (!isKind(b.type) || !isId(b.itemId)) throw new RequestError('Item inválido.')
+      if (!isSlug(b.type) || !isId(b.itemId)) throw new RequestError('Item inválido.')
       return { op: b.op, type: b.type, itemId: b.itemId }
     case 'link':
     case 'unlink':
-      if ((b.childType !== 'aula' && b.childType !== 'youtube') || !isId(b.childItemId) || !isId(b.infoItemId)) {
-        throw new RequestError('Este tipo de conexão ainda não possui armazenamento configurado na monday.')
+      if (!isSlug(b.connection) || !isId(b.sourceItemId) || !isId(b.targetItemId)) {
+        throw new RequestError('Este tipo de conexão ainda não está configurado.')
       }
-      return { op: b.op, childType: b.childType, childItemId: b.childItemId, infoItemId: b.infoItemId }
+      return { op: b.op, connection: b.connection, sourceItemId: b.sourceItemId, targetItemId: b.targetItemId }
     default:
       throw new RequestError('Operação desconhecida.')
   }
@@ -130,37 +88,74 @@ const DELETE = /* GraphQL */ `
   }
 `
 
+/* ------------------------------------------------------------------ schema */
+
+function typeOf(schema: SchemaPayload, slug: string): NodeTypeDef {
+  const t = schema.nodeTypes.find((x) => x.slug === slug && x.active)
+  if (!t) throw new RequestError('Tipo de conteúdo desconhecido ou desativado.')
+  return t
+}
+
+function connectionOf(schema: SchemaPayload, id: string): ConnectionDef {
+  const c = schema.connections.find((x) => x.id === id && x.active)
+  if (!c) throw new RequestError('Este tipo de conexão ainda não está configurado.')
+  return c
+}
+
 /* ------------------------------------------------------------------ helpers */
 
-async function loadItem(config: MondayConfig, kind: NodeKind, itemId: string): Promise<RawItem> {
+async function loadItem(config: MondayConfig, type: NodeTypeDef, itemId: string): Promise<RawItem> {
   const item = await fetchItem(config, itemId)
   if (!item) throw new RequestError('O item não existe mais na monday. Atualize os dados.')
-  // Garante que o item pertence ao quadro esperado para o tipo (não aceitamos ids de outros quadros).
-  if (item.board?.id && item.board.id !== config.boards[BOARD_OF[kind]]) throw new RequestError('O item pertence a outro quadro.')
+  // O item precisa pertencer ao board do tipo esperado (não aceitamos ids de outros boards).
+  if (item.board?.id && item.board.id !== type.boardId) throw new RequestError('O item pertence a outro quadro.')
   return item
 }
 
-async function contentOf(config: MondayConfig, kind: NodeKind, itemId: string): Promise<{ content: Content; themes: Theme[] }> {
-  const key = BOARD_OF[kind]
-  const [item, schema] = await Promise.all([loadItem(config, kind, itemId), fetchSchema(config, config.boards[key])])
+async function contentOf(config: MondayConfig, type: NodeTypeDef, itemId: string): Promise<{ content: Content; themes: Theme[] }> {
+  const [item, schema] = await Promise.all([loadItem(config, type, itemId), fetchSchema(config, type.boardId)])
   const board: RawBoard = { ...schema, items: [item] }
-  const { content, themeLabels } = buildContent(key, item, board)
+  const { content, themeLabels } = buildContent(type, item, board)
   const themes = themeLabels.map(themeOf)
   content.themes = themes.map((t) => t.id)
   return { content, themes }
 }
 
-/** Adiciona/remove UM infoproduto da relação do filho, preservando os demais (lê a lista atual antes de gravar). */
-async function setRelation(config: MondayConfig, child: 'aula' | 'youtube', childItemId: string, infoItemId: string, mode: 'add' | 'remove') {
-  const column = await relationColumn(config, child)
-  const item = await loadItem(config, child, childItemId)
-  const current = relationIds(item, column)
-  const next = mode === 'add' ? [...new Set([...current, infoItemId])] : current.filter((id) => id !== infoItemId)
+/** Itens que a coluna de outro item (a refletida) já liga: usado para respeitar a cardinalidade. */
+async function partnersOf(config: MondayConfig, type: NodeTypeDef, itemId: string, columnId: string | undefined): Promise<string[]> {
+  if (!columnId) return []
+  return relationIds(await loadItem(config, type, itemId), columnId)
+}
+
+/** Adiciona/remove UMA ligação preservando as demais (lê a lista atual antes de gravar) e respeitando a cardinalidade. */
+async function setRelation(config: MondayConfig, schema: SchemaPayload, conn: ConnectionDef, sourceItemId: string, targetItemId: string, mode: 'add' | 'remove') {
+  const sourceType = typeOf(schema, conn.source)
+  const targetType = typeOf(schema, conn.target)
+  const holderIsSource = conn.storedOn === 'source'
+  const holderType = holderIsSource ? sourceType : targetType
+  const otherType = holderIsSource ? targetType : sourceType
+  const holderId = holderIsSource ? sourceItemId : targetItemId
+  const otherId = holderIsSource ? targetItemId : sourceItemId
+  const holder = await loadItem(config, holderType, holderId)
+  await loadItem(config, otherType, otherId)
+  const current = relationIds(holder, conn.columnId)
+  if (mode === 'add' && !current.includes(otherId)) {
+    if (conn.cardinality === 'one-one' && current.length > 0) throw new RequestError('Este item já possui uma conexão deste tipo (cardinalidade um-para-um).')
+    if (conn.cardinality !== 'many-many') {
+      // Quem fica do lado "um" não pode ter outro parceiro.
+      if (!holderIsSource && current.length > 0) throw new RequestError('O destino já possui uma conexão deste tipo (cardinalidade um-para-muitos).')
+      if (holderIsSource) {
+        const partners = await partnersOf(config, otherType, otherId, conn.reflectionColumnId)
+        if (partners.some((p) => p !== holderId)) throw new RequestError('O destino já está ligado a outra origem (cardinalidade limita a um).')
+      }
+    }
+  }
+  const next = mode === 'add' ? [...new Set([...current, otherId])] : current.filter((id) => id !== otherId)
   if (next.length === current.length && next.every((id, i) => id === current[i])) return
   await gql(config, CHANGE, {
-    board: config.boards[BOARD_OF[child]],
-    item: childItemId,
-    cols: JSON.stringify({ [column]: { item_ids: next.map(Number) } }),
+    board: holderType.boardId,
+    item: holderId,
+    cols: JSON.stringify({ [conn.columnId]: { item_ids: next.map(Number) } }),
   })
 }
 
@@ -213,11 +208,10 @@ function copyableColumns(item: RawItem): Record<string, unknown> {
   return out
 }
 
-async function createItem(config: MondayConfig, kind: NodeKind, name: string, cols: Record<string, unknown>): Promise<string> {
-  const key = BOARD_OF[kind]
+async function createItem(config: MondayConfig, type: NodeTypeDef, name: string, cols: Record<string, unknown>): Promise<string> {
   const data = await gql<{ create_item: { id: string } }>(config, CREATE, {
-    board: config.boards[key],
-    group: config.newItemGroups[key],
+    board: type.boardId,
+    group: await firstGroupId(config, type.boardId),
     name,
     cols: Object.keys(cols).length ? JSON.stringify(cols) : null,
   })
@@ -231,62 +225,64 @@ function copyName(name: string): string {
 
 /* ------------------------------------------------------------------ execução */
 
-export async function runMutation(config: MondayConfig, op: Op): Promise<MutationResult> {
+export async function runMutation(config: MondayConfig, op: Op, schema: SchemaPayload): Promise<MutationResult> {
   switch (op.op) {
     case 'create': {
+      const type = typeOf(schema, op.type)
       const cols: Record<string, unknown> = {}
-      if (op.type === 'aula' && op.description) cols[COLUMNS.lessonDescription] = { text: op.description }
-      const itemId = await createItem(config, op.type, op.title, cols)
+      if (type.descriptionColumnId && op.description) cols[type.descriptionColumnId] = { text: op.description }
+      const itemId = await createItem(config, type, op.title, cols)
       // Vínculos iniciais (opcionais). Se algum falhar o item continua criado; o aviso informa o que ficou faltando.
       let failed = 0
       for (const link of op.links ?? []) {
         try {
-          if (op.type === 'infoproduto' && (link.type === 'aula' || link.type === 'youtube')) {
-            await setRelation(config, link.type, link.itemId, itemId, 'add')
-          } else if ((op.type === 'aula' || op.type === 'youtube') && link.type === 'infoproduto') {
-            await setRelation(config, op.type, itemId, link.itemId, 'add')
-          } else failed++
+          const conn = connectionOf(schema, link.connection)
+          if (link.role === 'source') await setRelation(config, schema, conn, itemId, link.itemId, 'add')
+          else await setRelation(config, schema, conn, link.itemId, itemId, 'add')
         } catch {
           failed++
         }
       }
-      const result = await contentOf(config, op.type, itemId)
+      const result = await contentOf(config, type, itemId)
       return { ok: true, ...result, ...(failed ? { warning: 'O item foi criado, mas alguns vínculos não puderam ser gravados.' } : {}) }
     }
     case 'update': {
+      const type = typeOf(schema, op.type)
       const cols: Record<string, unknown> = {}
       if (op.title !== undefined) cols.name = op.title
-      if (op.description !== undefined && op.type === 'aula') cols[COLUMNS.lessonDescription] = { text: op.description }
-      await loadItem(config, op.type, op.itemId)
+      if (op.description !== undefined && type.descriptionColumnId) cols[type.descriptionColumnId] = { text: op.description }
+      await loadItem(config, type, op.itemId)
       if (Object.keys(cols).length) {
-        await gql(config, CHANGE, { board: config.boards[BOARD_OF[op.type]], item: op.itemId, cols: JSON.stringify(cols) })
+        await gql(config, CHANGE, { board: type.boardId, item: op.itemId, cols: JSON.stringify(cols) })
       }
-      return { ok: true, ...(await contentOf(config, op.type, op.itemId)) }
+      return { ok: true, ...(await contentOf(config, type, op.itemId)) }
     }
     case 'delete': {
-      await loadItem(config, op.type, op.itemId)
+      const type = typeOf(schema, op.type)
+      await loadItem(config, type, op.itemId)
       await gql(config, DELETE, { item: op.itemId })
-      return { ok: true, deleted: `${NODE_PREFIX[BOARD_OF[op.type]]}:${op.itemId}` }
+      return { ok: true, deleted: `${type.prefix}:${op.itemId}` }
     }
     case 'link':
     case 'unlink': {
-      await loadItem(config, 'infoproduto', op.infoItemId)
-      await setRelation(config, op.childType, op.childItemId, op.infoItemId, op.op === 'link' ? 'add' : 'remove')
+      const conn = connectionOf(schema, op.connection)
+      await setRelation(config, schema, conn, op.sourceItemId, op.targetItemId, op.op === 'link' ? 'add' : 'remove')
       return { ok: true }
     }
     case 'duplicate': {
-      const item = await loadItem(config, op.type, op.itemId)
+      const type = typeOf(schema, op.type)
+      const item = await loadItem(config, type, op.itemId)
       const name = copyName(item.name)
       let warning: string | undefined
       let newId: string
       try {
-        newId = await createItem(config, op.type, name, copyableColumns(item))
+        newId = await createItem(config, type, name, copyableColumns(item))
       } catch (error) {
         if (!(error instanceof MondayError)) throw error
-        newId = await createItem(config, op.type, name, {})
+        newId = await createItem(config, type, name, {})
         warning = 'A cópia foi criada sem alguns campos, que a monday não aceitou copiar.'
       }
-      return { ok: true, warning, ...(await contentOf(config, op.type, newId)) }
+      return { ok: true, warning, ...(await contentOf(config, type, newId)) }
     }
   }
 }

@@ -2,11 +2,10 @@ import type { Content, Theme } from '../../types'
 import { ProviderError, httpError } from './errors'
 
 /**
- * Escrita na monday via /api/mutate (o servidor guarda o token e valida cada operação). Cada chamada só retorna depois de a
- * monday confirmar; a interface atualiza o estado local somente após o sucesso.
+ * Escrita de itens na monday via /api/mutate (o servidor guarda o token e valida cada operação). Cada chamada só retorna
+ * depois de a monday confirmar; a interface atualiza o estado local somente após o sucesso. Tipos e conexões são identificados
+ * pelo slug do schema (nada de nomes fixos).
  */
-
-export type WritableKind = 'infoproduto' | 'aula' | 'youtube'
 
 export interface WriteResult {
   ok: true
@@ -14,6 +13,13 @@ export interface WriteResult {
   themes?: Theme[]
   deleted?: string
   warning?: string
+}
+
+/** Vínculo inicial de um item recém-criado. `role` é o papel do NOVO item na conexão. */
+export interface InitialLink {
+  connection: string
+  itemId: string
+  role: 'source' | 'target'
 }
 
 async function post(body: Record<string, unknown>): Promise<WriteResult> {
@@ -36,14 +42,14 @@ async function post(body: Record<string, unknown>): Promise<WriteResult> {
 }
 
 export const mondayWriter = {
-  create: (type: WritableKind, title: string, description: string | undefined, links: { type: WritableKind; itemId: string }[]) =>
+  create: (type: string, title: string, description: string | undefined, links: InitialLink[]) =>
     post({ op: 'create', type, title, description, links }),
-  update: (type: WritableKind, itemId: string, fields: { title?: string; description?: string }) =>
+  update: (type: string, itemId: string, fields: { title?: string; description?: string }) =>
     post({ op: 'update', type, itemId, ...fields }),
-  remove: (type: WritableKind, itemId: string) => post({ op: 'delete', type, itemId }),
-  duplicate: (type: WritableKind, itemId: string) => post({ op: 'duplicate', type, itemId }),
-  link: (childType: 'aula' | 'youtube', childItemId: string, infoItemId: string) =>
-    post({ op: 'link', childType, childItemId, infoItemId }),
-  unlink: (childType: 'aula' | 'youtube', childItemId: string, infoItemId: string) =>
-    post({ op: 'unlink', childType, childItemId, infoItemId }),
+  remove: (type: string, itemId: string) => post({ op: 'delete', type, itemId }),
+  duplicate: (type: string, itemId: string) => post({ op: 'duplicate', type, itemId }),
+  link: (connection: string, sourceItemId: string, targetItemId: string) =>
+    post({ op: 'link', connection, sourceItemId, targetItemId }),
+  unlink: (connection: string, sourceItemId: string, targetItemId: string) =>
+    post({ op: 'unlink', connection, sourceItemId, targetItemId }),
 }

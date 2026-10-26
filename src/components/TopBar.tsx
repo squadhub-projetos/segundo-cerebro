@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { MoreHorizontal, Plus, RefreshCw, RotateCcw } from 'lucide-react'
+import { MoreHorizontal, Plus, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
 import { IconButton } from './IconButton'
 
 interface Props {
@@ -18,9 +18,14 @@ interface Props {
   sourceBadge: string
   /** Informação discreta no menu (por exemplo, horário da última atualização). */
   menuNote?: string
+  /** Nome do cérebro ativo (mostrado ao lado do título). */
+  brainName?: string
+  /** Botão do assistente (chat lateral). Ausente quando não há dados live. */
+  onToggleAssistant?: () => void
+  assistantOpen?: boolean
 }
 
-export function TopBar({ searchBox, filterMenu, onNew, onRestoreDemo, onRefresh, refreshing, sourceBadge, menuNote }: Props) {
+export function TopBar({ searchBox, filterMenu, onNew, onRestoreDemo, onRefresh, refreshing, sourceBadge, menuNote, brainName, onToggleAssistant, assistantOpen }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -52,13 +57,19 @@ export function TopBar({ searchBox, filterMenu, onNew, onRestoreDemo, onRefresh,
         />
         <span className="brand-sep" aria-hidden="true" />
         <span className="brand-name">Segundo Cérebro</span>
+        {brainName && <span className="brand-brain">· {brainName}</span>}
       </div>
       <span className="demo-badge">{sourceBadge}</span>
 
-      {searchBox}
+      {searchBox ?? <span className="topbar-spacer" />}
 
       <div className="topbar-actions">
         {filterMenu}
+        {onToggleAssistant && (
+          <IconButton label={assistantOpen ? 'Fechar assistente' : 'Abrir assistente'} aria-pressed={assistantOpen} className={assistantOpen ? 'is-active' : ''} onClick={onToggleAssistant}>
+            <Sparkles size={18} aria-hidden="true" />
+          </IconButton>
+        )}
         <button type="button" className="btn btn-primary" onClick={onNew}>
           <Plus size={16} aria-hidden="true" />
           <span className="btn-label">Novo conteúdo</span>

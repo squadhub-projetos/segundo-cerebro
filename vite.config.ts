@@ -10,14 +10,26 @@ function mondayApi(): Plugin {
   return {
     name: 'monday-api',
     configureServer(server) {
-      const env = loadEnv(server.config.mode, process.cwd(), '')
-      for (const [key, value] of Object.entries(env)) {
-        if (key.startsWith('MONDAY_') && process.env[key] === undefined) process.env[key] = value
+      // Variáveis do servidor (monday e assistente) lidas do .env; nada com prefixo VITE_ e nada disso chega ao navegador.
+      // Relido a cada requisição: trocar o token no .env vale na hora, sem reiniciar o Vite. Variáveis já definidas
+      // no processo (shell/sistema) têm prioridade; só atualizamos as que nós mesmos copiamos do arquivo.
+      const fromFile = new Set<string>()
+      const syncEnv = () => {
+        const env = loadEnv(server.config.mode, process.cwd(), '')
+        for (const [key, value] of Object.entries(env)) {
+          if (!/^(MONDAY_|OPENAI_|AI_|SCHEMA_|ALLOWED_ORIGINS|APP_ORIGIN)/.test(key)) continue
+          if (process.env[key] === undefined || fromFile.has(key)) {
+            process.env[key] = value
+            fromFile.add(key)
+          }
+        }
       }
-      const route = (path: string, handlerName: 'handleGraph' | 'handleSchema' | 'handleMutate') =>
+      syncEnv()
+      const route = (path: string, file: string, handlerName: string) =>
         server.middlewares.use(path, async (req, res) => {
           try {
-            const mod = await server.ssrLoadModule('/server/monday/handler.ts')
+            syncEnv()
+            const mod = await server.ssrLoadModule(file)
             await (mod[handlerName] as (req: unknown, res: unknown) => Promise<void>)(req, res)
           } catch (error) {
             res.statusCode = 500
@@ -25,9 +37,14 @@ function mondayApi(): Plugin {
             res.end(JSON.stringify({ error: 'internal', message: (error as Error).message }))
           }
         })
-      route('/api/graph', 'handleGraph')
-      route('/api/schema', 'handleSchema')
-      route('/api/mutate', 'handleMutate')
+      const monday = '/server/monday/handler.ts'
+      const ai = '/server/ai/handler.ts'
+      route('/api/graph', monday, 'handleGraph')
+      route('/api/schema', monday, 'handleSchema')
+      route('/api/mutate', monday, 'handleMutate')
+      route('/api/structure', monday, 'handleStructure')
+      route('/api/ai/chat', ai, 'handleAiChat')
+      route('/api/ai/execute', ai, 'handleAiExecute')
     },
   }
 }

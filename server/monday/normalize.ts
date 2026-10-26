@@ -1,16 +1,14 @@
-import type { Collection, Content, ContentStatus, GraphPayload, MetaField, Relation, RelationType, Theme } from '../../src/types/index.js'
-import type { BoardKey, RawBoard, RawBoards, RawColumn, RawColumnValue, RawItem } from './types.js'
+import type { Collection, Content, ContentStatus, GraphPayload, MetaField, Relation, Theme } from '../../src/types/index.js'
+import type { ConnectionDef, NodeTypeDef, SchemaPayload } from '../../src/types/schema.js'
+import type { RawBoard, RawBoards, RawColumn, RawColumnValue, RawItem } from './types.js'
 
 /**
- * Transforma os 3 quadros crus da monday no grafo normalizado que a interface consome.
+ * Transforma os boards crus da monday no grafo normalizado que a interface consome. Dirigido pelo SCHEMA (registry):
  *
- *  - Controle de Infoprodutos → nós `infoproduto`
- *  - Controle de Cursos 2.0   → nós `aula` (um por item; o grupo NÃO vira nó)
- *  - YouTube                  → nós `youtube`
- *
- * Relações: colunas do tipo `board_relation` (linked items) são a ÚNICA fonte das arestas (`relationSource: 'monday'`).
- * O grupo da monday entra apenas como metadado/agrupamento visual; nunca cria relação. Cada item é um nó (sem fusão por
- * nome): uma aula ligada a vários infoprodutos continua sendo um único nó, porque é um único item.
+ *  - cada tipo de conteúdo ativo é um board; cada item do board é um nó (o grupo da monday NÃO vira nó nem relação);
+ *  - cada conexão ativa diz em qual coluna Connect Boards a ligação é guardada (e qual é a coluna refletida). A ligação é lida
+ *    dos DOIS lados e deduplicada pelo par de ids de nós, então uma relação refletida gera UMA aresta;
+ *  - nada é inferido por nome, grupo ou tema. Nada daqui escreve na monday.
  */
 
 /* ------------------------------------------------------------------ texto */
@@ -33,8 +31,8 @@ function columnMap(board: RawBoard): Map<string, RawColumn> {
 }
 
 /**
- * Ids dos itens ligados por uma coluna Connect Boards. Une `linked_item_ids`, `linked_items` e (por segurança) o `value`
- * bruto: uma coluna refletida pode expor a lista por apenas um desses caminhos.
+ * Ids dos itens ligados por uma coluna Connect Boards. Une `linked_item_ids`, `linked_items` e o `value` bruto: uma coluna
+ * refletida pode expor a lista por apenas um desses caminhos.
  */
 function linkedIds(cv: RawColumnValue): string[] {
   if (cv.type !== 'board_relation') return []
@@ -125,28 +123,23 @@ function readItem(item: RawItem, board: RawBoard): BaseContent {
   }
 }
 
-/* ------------------------------------------------------------------ montagem */
-
-/** Prefixo do id interno por quadro (o id completo é `<prefixo>:<id do item na monday>`; itens de quadros diferentes não colidem). */
-export const NODE_PREFIX: Record<BoardKey, string> = { infoproducts: 'info', courses: 'lesson', youtube: 'yt' }
-const NODE_TYPE: Record<BoardKey, Content['type']> = { infoproducts: 'infoproduto', courses: 'aula', youtube: 'youtube' }
-
 /** Constrói o conteúdo normalizado de UM item (usado no grafo completo e nas respostas das mutations). */
-export function buildContent(key: BoardKey, item: RawItem, board: RawBoard): { content: Content; themeLabels: string[]; base: BaseContent } {
+export function buildContent(type: NodeTypeDef, item: RawItem, board: RawBoard): { content: Content; themeLabels: string[] } {
   const base = readItem(item, board)
   const metadata = [...base.metadata]
-  if (key === 'courses' && item.group?.title) metadata.unshift({ label: 'Grupo na monday', value: item.group.title })
-  if (key === 'youtube' && item.group?.title) metadata.unshift({ label: 'Grupo na monday', value: item.group.title })
+  if (item.group?.title && item.group.title !== 'Group Title' && board.groups.length > 1) {
+    metadata.unshift({ label: 'Grupo na monday', value: item.group.title })
+  }
   const content: Content = {
-    id: `${NODE_PREFIX[key]}:${item.id}`,
+    id: `${type.prefix}:${item.id}`,
     title: base.title,
-    type: NODE_TYPE[key],
+    type: type.slug,
     description: base.description,
     bodyMarkdown: base.bodyMarkdown,
     themes: [],
     status: base.status,
     collectionId: null,
-    thumbnailPath: key === 'youtube' ? youtubeThumbnail(item) : null,
+    thumbnailPath: type.slug === 'youtube' ? youtubeThumbnail(item) : null,
     isMock: false,
     source: 'monday',
     sourceIds: [item.id],
@@ -154,7 +147,7 @@ export function buildContent(key: BoardKey, item: RawItem, board: RawBoard): { c
     normalizedKey: fold(base.title),
     metadata,
   }
-  return { content, themeLabels: base.themeLabels, base }
+  return { content, themeLabels: base.themeLabels }
 }
 
 /** Ids (da monday) ligados por uma coluna Connect Boards de um item. */
@@ -167,6 +160,8 @@ export function themeOf(label: string): Theme {
   return { id: slug(label), label }
 }
 
+/* ------------------------------------------------------------------ montagem */
+
 const PALETTE = ['#a8d879', '#7cb8ef', '#ebc17a', '#c59bf0', '#f0a07c', '#7cdfd0', '#e88fb8', '#9fb3d9']
 
 interface Draft {
@@ -175,90 +170,39 @@ interface Draft {
   themeLabels: string[]
 }
 
-export function normalizeMondayGraphData(raw: RawBoards, now: Date = new Date()): GraphPayload {
+export function normalizeMondayGraphData(raw: RawBoards, schema: SchemaPayload, now: Date = new Date()): GraphPayload {
   const warnings: string[] = []
   const drafts = new Map<string, Draft>()
   const relations = new Map<string, Relation>()
-  let explicitRelations = 0
-  const inferredRelations = 0
+  const typeBySlug = new Map(schema.nodeTypes.map((t) => [t.slug, t]))
+  const activeTypes = schema.nodeTypes.filter((t) => t.active && raw[t.slug])
+  for (const t of schema.nodeTypes) if (t.active && !raw[t.slug]) warnings.push(`O board do tipo "${t.name}" não pôde ser lido.`)
 
-  const addRelation = (type: RelationType, source: string, target: string, relationSource: 'monday') => {
-    const id = `rel:${type}:${source}>${target}`
-    if (relations.has(id)) return
-    relations.set(id, { id, source, target, type, relationSource })
-    explicitRelations++
-  }
-
-  /* ---- Infoprodutos ---- */
-  const infoNodeByItem = new Map<string, string>()
-  for (const item of raw.infoproducts.items) {
-    const { content, themeLabels } = buildContent('infoproducts', item, raw.infoproducts)
-    infoNodeByItem.set(item.id, content.id)
-    drafts.set(content.id, { content, themeLabels })
-  }
-
-  /* ---- YouTube ---- */
-  const videoNodeByItem = new Map<string, string>()
-  for (const item of raw.youtube.items) {
-    const { content, themeLabels } = buildContent('youtube', item, raw.youtube)
-    videoNodeByItem.set(item.id, content.id)
-    drafts.set(content.id, { content, themeLabels })
-  }
-
-  /* ---- Aulas (um nó por item do Controle de Aulas) ---- */
-  interface LessonItem {
-    item: RawItem
-    base: BaseContent
-  }
-  const lessonItems: LessonItem[] = []
-  const lessonNodeByItem = new Map<string, string>()
-  for (const item of raw.courses.items) {
-    const { content, themeLabels, base } = buildContent('courses', item, raw.courses)
-    lessonItems.push({ item, base })
-    lessonNodeByItem.set(item.id, content.id)
-    drafts.set(content.id, { content, themeLabels })
-  }
-
-  /* ---- Relações explícitas (colunas Connect Boards) ---- */
-  const infoIds = new Set(infoNodeByItem.keys())
-  const lessonIds = new Set(lessonNodeByItem.keys())
-  const videoIds = new Set(videoNodeByItem.keys())
-
-  // Cada ligação pode ser encontrada no lado do infoproduto, no da aula/vídeo, ou nos dois (coluna refletida). Tudo vira um par
-  // de ids de nós e a deduplicação por par garante UMA aresta. Nenhuma ligação é descartada por grupo, coleção ou nome.
-  const stats = { contemAula: { raw: 0, unique: 0 }, divulga: { raw: 0, unique: 0 }, ignored: 0 }
-  const link = (kind: 'contemAula' | 'divulga', source: string, target: string) => {
-    stats[kind].raw++
-    addRelation(kind === 'contemAula' ? 'contem-aula' : 'divulga', source, target, 'monday')
-  }
-  for (const item of raw.infoproducts.items) {
-    for (const cv of item.column_values) {
-      for (const target of linkedIds(cv)) {
-        if (lessonIds.has(target)) link('contemAula', infoNodeByItem.get(item.id)!, lessonNodeByItem.get(target)!)
-        else if (videoIds.has(target)) link('divulga', videoNodeByItem.get(target)!, infoNodeByItem.get(item.id)!)
-        else stats.ignored++
-      }
+  /* ---- Nós: um por item de cada board ---- */
+  const nodeOfItem = new Map<string, { id: string; slug: string }>()
+  for (const type of activeTypes) {
+    const board = raw[type.slug]
+    for (const item of board.items) {
+      const { content, themeLabels } = buildContent(type, item, board)
+      nodeOfItem.set(item.id, { id: content.id, slug: type.slug })
+      drafts.set(content.id, { content, themeLabels })
     }
   }
-  for (const item of raw.courses.items) {
-    for (const cv of item.column_values) {
-      for (const target of linkedIds(cv)) {
-        if (infoIds.has(target)) link('contemAula', infoNodeByItem.get(target)!, lessonNodeByItem.get(item.id)!)
-        else stats.ignored++
-      }
+
+  /* ---- Arestas: pares lidos dos dois lados da coluna e deduplicados ---- */
+  const stats: Record<string, { raw: number; unique: number }> = {}
+  let ignored = 0
+  const connections = schema.connections.filter((c) => c.active && typeBySlug.get(c.source)?.active && typeBySlug.get(c.target)?.active)
+  for (const conn of connections) {
+    stats[conn.id] = { raw: 0, unique: 0 }
+    const add = (sourceNode: string, targetNode: string) => {
+      stats[conn.id].raw++
+      const id = `rel:${conn.id}:${sourceNode}>${targetNode}`
+      if (relations.has(id)) return
+      relations.set(id, { id, source: sourceNode, target: targetNode, type: conn.id, relationSource: 'monday' })
+      stats[conn.id].unique++
     }
-  }
-  for (const item of raw.youtube.items) {
-    for (const cv of item.column_values) {
-      for (const target of linkedIds(cv)) {
-        if (infoIds.has(target)) link('divulga', videoNodeByItem.get(item.id)!, infoNodeByItem.get(target)!)
-        else stats.ignored++ // inclui colunas que apontam para outros quadros (ex.: Roteiro)
-      }
-    }
-  }
-  for (const r of relations.values()) {
-    if (r.type === 'contem-aula') stats.contemAula.unique++
-    else if (r.type === 'divulga') stats.divulga.unique++
+    readConnection(raw, conn, nodeOfItem, add, () => ignored++)
   }
 
   /* ---- Temas ---- */
@@ -276,7 +220,7 @@ export function normalizeMondayGraphData(raw: RawBoards, now: Date = new Date())
   }
   const themes = [...themeById.values()].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 
-  /* ---- Conjuntos: componentes conexos do grafo (infoprodutos que compartilham aulas ficam juntos) ---- */
+  /* ---- Conjuntos: componentes conexos (conteúdos ligados ficam juntos) ---- */
   const parent = new Map<string, string>()
   const find = (x: string): string => {
     let r = x
@@ -288,13 +232,12 @@ export function normalizeMondayGraphData(raw: RawBoards, now: Date = new Date())
     }
     return r
   }
-  const union = (a: string, b: string) => {
-    const ra = find(a)
-    const rb = find(b)
-    if (ra !== rb) parent.set(ra, rb)
-  }
   for (const id of drafts.keys()) parent.set(id, id)
-  for (const r of relations.values()) union(r.source, r.target)
+  for (const r of relations.values()) {
+    const a = find(r.source)
+    const b = find(r.target)
+    if (a !== b) parent.set(a, b)
+  }
   const components = new Map<string, string[]>()
   for (const id of drafts.keys()) components.set(find(id), [...(components.get(find(id)) ?? []), id])
   const degree = new Map<string, number>()
@@ -302,50 +245,86 @@ export function normalizeMondayGraphData(raw: RawBoards, now: Date = new Date())
     degree.set(r.source, (degree.get(r.source) ?? 0) + 1)
     degree.set(r.target, (degree.get(r.target) ?? 0) + 1)
   }
+  // Tipos que são "pai" em alguma hierarquia (ex.: infoproduto) dão nome ao conjunto.
+  const parentTypes = new Set(connections.filter((c) => c.nature === 'hierarchy').map((c) => c.source))
 
   const collections: Collection[] = []
-  const looseVideos: string[] = []
-  const isolated: string[] = []
   let colorIndex = 0
   const assign = (ids: string[], name: string, id: string) => {
     const color = PALETTE[colorIndex++ % PALETTE.length]
     collections.push({ id, name, color })
     for (const nodeId of ids) drafts.get(nodeId)!.content.collectionId = id
   }
+  const isolatedByType = new Map<string, string[]>()
   let n = 0
   for (const ids of [...components.values()].sort((a, b) => b.length - a.length)) {
-    const infos = ids.filter((id) => drafts.get(id)!.content.type === 'infoproduto').sort((a, b) => (degree.get(b) ?? 0) - (degree.get(a) ?? 0))
-    if (ids.length === 1 && drafts.get(ids[0])!.content.type === 'youtube') {
-      looseVideos.push(ids[0])
-      continue
-    }
     if (ids.length === 1) {
-      // Infoprodutos/aulas sem nenhuma relação: ficam juntos numa área própria (o grupo da monday não vira cluster).
-      isolated.push(ids[0])
+      const t = drafts.get(ids[0])!.content.type
+      isolatedByType.set(t, [...(isolatedByType.get(t) ?? []), ids[0]])
       continue
     }
-    if (infos.length > 0) {
-      const names = infos.slice(0, 2).map((id) => drafts.get(id)!.content.title)
-      assign(ids, infos.length > 2 ? `${names.join(' · ')} +${infos.length - 2}` : names.join(' · '), `c-${n++}`)
-    } else {
-      assign(ids, 'Conteúdos relacionados', `c-${n++}`)
-    }
+    const byDegree = [...ids].sort((a, b) => (degree.get(b) ?? 0) - (degree.get(a) ?? 0))
+    const hubs = byDegree.filter((id) => parentTypes.has(drafts.get(id)!.content.type))
+    const named = (hubs.length ? hubs : byDegree).slice(0, 2).map((id) => drafts.get(id)!.content.title)
+    const extra = (hubs.length ? hubs : byDegree).length - named.length
+    assign(ids, extra > 0 ? `${named.join(' · ')} +${extra}` : named.join(' · '), `c-${n++}`)
   }
-  if (isolated.length > 0) assign(isolated, 'Sem conexões', 'c-isolados')
-  if (looseVideos.length > 0) assign(looseVideos, 'YouTube · sem infoproduto', 'c-youtube-solto')
+  for (const [slugOfType, ids] of isolatedByType) {
+    assign(ids, `${typeBySlug.get(slugOfType)?.plural ?? slugOfType} · sem conexões`, `c-isolados-${slugOfType}`)
+  }
 
-  const boards = (['infoproducts', 'courses', 'youtube'] as const).map((key) => ({
-    key,
-    id: raw[key].id,
-    name: raw[key].name,
-    items: raw[key].items.length,
-  }))
+  const boards = activeTypes.map((t) => ({ key: t.slug, id: raw[t.slug].id, name: raw[t.slug].name, items: raw[t.slug].items.length }))
+  const explicit = relations.size
 
   return {
     contents: [...drafts.values()].map((d) => d.content),
     relations: [...relations.values()],
     collections,
     themes,
-    meta: { fetchedAt: now.toISOString(), boards, explicitRelations, relationStats: stats, inferredRelations, mergedLessons: 0, warnings },
+    schema,
+    meta: {
+      fetchedAt: now.toISOString(),
+      boards,
+      explicitRelations: explicit,
+      relationStats: { byConnection: stats, ignored },
+      inferredRelations: 0,
+      mergedLessons: 0,
+      warnings,
+    },
+  }
+}
+
+/**
+ * Lê os pares (origem, destino) de uma conexão: da coluna que guarda a ligação e da coluna refletida. Cada par vira um nó de
+ * origem e um de destino; ids que não pertencem ao tipo esperado são ignorados (nunca se compara por nome).
+ */
+function readConnection(
+  raw: RawBoards,
+  conn: ConnectionDef,
+  nodeOfItem: Map<string, { id: string; slug: string }>,
+  add: (source: string, target: string) => void,
+  ignore: () => void,
+) {
+  const storedSlug = conn.storedOn === 'source' ? conn.source : conn.target
+  const otherSlug = conn.storedOn === 'source' ? conn.target : conn.source
+  const read = (boardSlug: string, columnId: string, expect: string, orient: (self: string, other: string) => void) => {
+    for (const item of raw[boardSlug]?.items ?? []) {
+      const self = nodeOfItem.get(item.id)
+      if (!self) continue
+      for (const linked of relationIds(item, columnId)) {
+        const other = nodeOfItem.get(linked)
+        if (!other || other.slug !== expect) {
+          ignore()
+          continue
+        }
+        orient(self.id, other.id)
+      }
+    }
+  }
+  // Coluna principal: o item guarda os itens do outro lado.
+  read(storedSlug, conn.columnId, otherSlug, (self, other) => (conn.storedOn === 'source' ? add(self, other) : add(other, self)))
+  // Coluna refletida: o item do outro lado guarda os itens de quem guarda a principal.
+  if (conn.reflectionColumnId) {
+    read(otherSlug, conn.reflectionColumnId, storedSlug, (self, other) => (conn.storedOn === 'source' ? add(other, self) : add(self, other)))
   }
 }

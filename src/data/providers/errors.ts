@@ -27,3 +27,14 @@ export function httpError(path: string, status: number, code?: string, message?:
   console.error(`[SecondBrain] ${path} respondeu HTTP ${status}${code ? ` (${code})` : ''}`)
   return new ProviderError(code ?? `http_${status}`, `${message ?? fallback} (HTTP ${status})`)
 }
+
+/** Erro de uma alteração estrutural (tipos/conexões). `details` descreve o que já foi feito numa falha parcial. */
+export class StructureError extends ProviderError {
+  constructor(
+    code: string,
+    message: string,
+    public details?: { boardId?: string; boardName?: string; completed: string[]; failedStep: string },
+  ) {
+    super(code, message)
+  }
+}

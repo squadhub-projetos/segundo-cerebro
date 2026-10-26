@@ -1,28 +1,26 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { MondayError, fetchBoard, fetchSchema, readConfig } from './client.js'
-import { buildFixtureBoards } from './fixtures.js'
-import { normalizeMondayGraphData } from './normalize.js'
-import { RequestError, parseOp, runMutation } from './mutations.js'
-import type { BoardKey, RawBoards } from './types.js'
-import type { GraphPayload } from '../../src/types/index.js'
+import { MondayError, fetchSchema, readConfig } from './client.js'
+import { parseOp, runMutation } from './mutations.js'
+import { getGraph, invalidateGraph } from './graph.js'
+import { PartialError, RequestError, initRegistry, loadRegistry } from './registry.js'
+import { createConnection, createNodeType, friendlyMondayError, planConnection, planNodeType, structureDenied, structureStatus } from './structure.js'
 
 /**
  * Handlers HTTP (Node puro: servem tanto a função da Vercel quanto o middleware do Vite em desenvolvimento).
- * O token fica no servidor. Leitura em `handleGraph`/`handleSchema`; escrita somente em `handleMutate`.
+ * O token fica no servidor. Leitura em `handleGraph`/`handleSchema`; escrita de itens em `handleMutate`; alterações do
+ * schema (tipos e conexões) em `handleStructure`, com proteção própria.
  */
 
-const KEYS: BoardKey[] = ['infoproducts', 'courses', 'youtube']
-let cache: { at: number; payload: GraphPayload } | null = null
-let inflight: Promise<GraphPayload> | null = null
-
-function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
+export function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
   res.end(JSON.stringify(body))
 }
 
-function errorBody(error: unknown) {
+export function errorBody(error: unknown) {
+  if (error instanceof RequestError) return { status: 400, body: { error: error.code, message: error.message } }
+  if (error instanceof PartialError) return { status: 500, body: { error: 'partial', message: error.message, details: error.details } }
   if (error instanceof MondayError) {
     return {
       status: error.code === 'missing_token' ? 503 : 502,
@@ -32,47 +30,30 @@ function errorBody(error: unknown) {
   return { status: 500, body: { error: 'internal', message: (error as Error).message } }
 }
 
-async function loadGraph(env: Record<string, string | undefined>): Promise<GraphPayload> {
-  if (env.MONDAY_FIXTURE === '1') return normalizeMondayGraphData(buildFixtureBoards())
-  const config = readConfig(env)
-  const boards = await Promise.all(KEYS.map((key) => fetchBoard(config, config.boards[key])))
-  const raw = Object.fromEntries(KEYS.map((key, i) => [key, boards[i]])) as unknown as RawBoards
-  return normalizeMondayGraphData(raw)
-}
-
-/** GET /api/graph[?refresh=1] — grafo normalizado a partir dos 3 quadros. Cache curto em memória. */
+/** GET /api/graph[?refresh=1] — grafo normalizado + schema vigente. Cache curto em memória. */
 export async function handleGraph(req: IncomingMessage, res: ServerResponse, env: Record<string, string | undefined> = process.env) {
   if (req.method && req.method !== 'GET') return send(res, 405, { error: 'method_not_allowed', message: 'Somente leitura.' })
   const url = new URL(req.url ?? '/', 'http://localhost')
   const refresh = url.searchParams.get('refresh') === '1'
   const ttl = (readConfig(env).cacheSeconds || 0) * 1000
   try {
-    if (!refresh && cache && Date.now() - cache.at < ttl) {
-      return send(res, 200, cache.payload, { 'X-Cache': 'HIT', 'Cache-Control': 'no-store' })
-    }
-    inflight ??= loadGraph(env).finally(() => {
-      inflight = null
-    })
-    const payload = await inflight
-    cache = { at: Date.now(), payload }
-    return send(res, 200, payload, { 'X-Cache': 'MISS', 'Cache-Control': 'no-store' })
+    const { payload, hit } = await getGraph(env, refresh, ttl)
+    return send(res, 200, payload, { 'X-Cache': hit ? 'HIT' : 'MISS', 'Cache-Control': 'no-store' })
   } catch (error) {
     const { status, body } = errorBody(error)
     return send(res, status, body)
   }
 }
 
-/** GET /api/schema — grupos e colunas (id, título, tipo) dos 3 quadros, para conferir o mapeamento. Não retorna itens. */
+/** GET /api/schema — grupos e colunas (id, título, tipo) dos boards dos tipos ativos, para conferir o mapeamento. Sem itens. */
 export async function handleSchema(req: IncomingMessage, res: ServerResponse, env: Record<string, string | undefined> = process.env) {
   void req
   try {
-    if (env.MONDAY_FIXTURE === '1') {
-      const raw = buildFixtureBoards()
-      return send(res, 200, Object.fromEntries(KEYS.map((k) => [k, { id: raw[k].id, name: raw[k].name, groups: raw[k].groups, columns: raw[k].columns }])))
-    }
     const config = readConfig(env)
-    const schemas = await Promise.all(KEYS.map((key) => fetchSchema(config, config.boards[key])))
-    return send(res, 200, Object.fromEntries(KEYS.map((k, i) => [k, schemas[i]])))
+    const { schema } = await loadRegistry(config, env)
+    const active = schema.nodeTypes.filter((t) => t.active)
+    const boards = await Promise.all(active.map((t) => fetchSchema(config, t.boardId)))
+    return send(res, 200, Object.fromEntries(active.map((t, i) => [t.slug, boards[i]])))
   } catch (error) {
     const { status, body } = errorBody(error)
     return send(res, status, body)
@@ -115,7 +96,7 @@ export function originDenied(req: IncomingMessage, env: Record<string, string | 
   return `Origem não permitida (${originHost}). Configure ALLOWED_ORIGINS na Vercel se este domínio for legítimo.`
 }
 
-function readBody(req: IncomingMessage): Promise<unknown> {
+export function readBody(req: IncomingMessage): Promise<unknown> {
   // A Vercel já entrega `req.body` interpretado; no Vite lemos o fluxo.
   const preset = (req as IncomingMessage & { body?: unknown }).body
   if (preset !== undefined) return Promise.resolve(typeof preset === 'string' ? JSON.parse(preset) : preset)
@@ -140,7 +121,7 @@ function readBody(req: IncomingMessage): Promise<unknown> {
   })
 }
 
-/** POST /api/mutate — única rota de escrita (create/update/delete/link/unlink/duplicate). Invalida o cache do grafo. */
+/** POST /api/mutate — escrita de itens (create/update/delete/link/unlink/duplicate). Invalida o cache do grafo. */
 export async function handleMutate(req: IncomingMessage, res: ServerResponse, env: Record<string, string | undefined> = process.env) {
   const config = readConfig(env)
   if (req.method !== 'POST') {
@@ -149,16 +130,70 @@ export async function handleMutate(req: IncomingMessage, res: ServerResponse, en
   const denied = originDenied(req, env)
   if (denied) return send(res, 403, { error: 'forbidden_origin', message: denied })
   if (!config.writesEnabled) return send(res, 403, { error: 'writes_disabled', message: 'Escrita na monday está desabilitada (MONDAY_WRITE_ENABLED=0).' })
-  if (env.MONDAY_FIXTURE === '1') return send(res, 403, { error: 'read_only', message: 'Dados de demonstração não aceitam gravação.' })
   try {
     const op = parseOp(await readBody(req))
-    const result = await runMutation(config, op)
-    cache = null
+    const { schema } = await loadRegistry(config, env)
+    const result = await runMutation(config, op, schema)
+    invalidateGraph()
     return send(res, 200, result, { 'Cache-Control': 'no-store' })
   } catch (error) {
-    if (error instanceof RequestError) return send(res, 400, { error: 'bad_request', message: error.message })
-    cache = null
+    invalidateGraph()
     const { status, body } = errorBody(error)
+    return send(res, status, body)
+  }
+}
+
+/**
+ * /api/structure — alterações do SCHEMA (tipos de conteúdo e de conexão). GET devolve o status e as permissões; POST executa
+ * `init`, `preview-node-type`, `create-node-type`, `preview-connection` e `create-connection`. Toda gravação passa pela
+ * proteção de `structureDenied` (habilitação explícita + chave de administração em produção).
+ */
+export async function handleStructure(req: IncomingMessage, res: ServerResponse, env: Record<string, string | undefined> = process.env) {
+  const config = readConfig(env)
+  try {
+    if (req.method === 'GET') return send(res, 200, await structureStatus(config, env), { 'Cache-Control': 'no-store' })
+    if (req.method !== 'POST') return send(res, 405, { error: 'method_not_allowed', message: 'Use GET ou POST.' })
+    const origin = originDenied(req, env)
+    if (origin) return send(res, 403, { error: 'forbidden_origin', message: origin })
+    const denied = structureDenied(req, env)
+    if (denied) return send(res, denied.status, { error: denied.error, message: denied.message })
+    const body = ((await readBody(req)) ?? {}) as Record<string, unknown>
+    let result: unknown
+    switch (body.op) {
+      case 'init':
+        result = await initRegistry(config, env)
+        break
+      case 'preview-node-type':
+        result = await planNodeType(config, env, body)
+        break
+      case 'create-node-type':
+        result = await createNodeType(config, env, body)
+        break
+      case 'preview-connection': {
+        const plan = await planConnection(config, env, body)
+        result = {
+          input: plan.input,
+          sourceName: plan.source.name,
+          targetName: plan.target.name,
+          boardName: plan.boardName,
+          columnTitle: plan.columnTitle,
+          multiple: plan.multiple,
+          sameBoard: plan.sameBoard,
+          reflection: plan.reflection,
+        }
+        break
+      }
+      case 'create-connection':
+        result = await createConnection(config, env, body)
+        break
+      default:
+        throw new RequestError('Operação desconhecida.')
+    }
+    invalidateGraph()
+    return send(res, 200, { ok: true, ...(result as object) }, { 'Cache-Control': 'no-store' })
+  } catch (error) {
+    invalidateGraph()
+    const { status, body } = errorBody(friendlyMondayError(error))
     return send(res, status, body)
   }
 }

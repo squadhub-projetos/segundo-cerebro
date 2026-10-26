@@ -102,7 +102,7 @@ export function saveState(data: AppData): string | null {
  */
 export const LIVE_STORAGE_KEY = 'squadhub:segundo-cerebro:live:v1'
 export const LIVE_STORAGE_VERSION = 2
-const LIVE_ID = /^(info|lesson|yt):\d+$/
+const LIVE_ID = /^[a-z0-9-]+:\d+$/
 
 export function loadLive(): LiveOverlay | null {
   try {

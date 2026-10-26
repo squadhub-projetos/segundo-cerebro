@@ -287,39 +287,56 @@ somente no `localStorage`.
 
 ## Dados reais da monday (fonte de verdade)
 
-O navegador lê o grafo em `GET /api/graph` e grava em `POST /api/mutate` (funções serverless da Vercel; no `npm run dev`, middleware do Vite com o MESMO código em `server/monday/`). O token (`MONDAY_API_TOKEN`) existe só no servidor.
+O navegador lê o grafo em `GET /api/graph`, grava itens em `POST /api/mutate` e altera a ESTRUTURA em `/api/structure` (funções serverless da Vercel; no `npm run dev`, middleware do Vite com o MESMO código em `server/monday/`). O token (`MONDAY_API_TOKEN`) existe só no servidor.
 
-| Quadro | Vira | Observação |
-| --- | --- | --- |
-| Controle de Infoprodutos (`18433730926`) | nó **Infoproduto** | Status, Lançado, Plataforma, Tema, Data de Lançamento |
-| Controle de Aulas (`18433759798`) | nó **Aula** (1 por item) | o grupo é só metadado; a relação vem de `board_relation_mm7r2dm1` |
-| Controle YouTube (`18426268819`) | nó **Vídeo do YouTube** | relação opcional em `board_relation_mm7rxp0x` |
+### Schema (registry na monday)
+Cada **tipo de conteúdo** é um board e cada **tipo de conexão** é uma coluna Connect Boards. O schema vive na própria monday, em dois boards administrativos globais (não são conteúdo do grafo; "SC" é só o prefixo técnico dos boards, o produto continua se chamando Segundo Cérebro) na pasta do cérebro (hoje "Cursos SH", workspace "Marketing 2.0"):
 
-Arestas (todas `relationSource: monday`, lidas dos linked items): `contem-aula` (Infoproduto → Aula) e `divulga` (Vídeo → Infoproduto). Uma aula ligada a vários infoprodutos é um único nó com várias arestas. Nada é inferido por nome de grupo ou tema. A coluna "Conectar quadros" dos infoprodutos (`board_relation_mm7rv2g7`) é lida só como reflexo das aulas.
+- `SC | Estrutura` (global): um item por tipo (Slug, Brain ID, Plural, Descrição, Board ID, Workspace ID, Folder ID, Ícone, Cor, Papel [Núcleo/Personalizado], Coluna de descrição, Prefixo, Ativo).
+- `SC | Relações` (global): um item por conexão (Slug, Brain ID, Origem, Destino, Rótulo, Rótulo inverso, Natureza [Hierarquia/Associação], Cardinalidade, Coluna em [Origem/Destino], Coluna (ID), Coluna refletida (ID), Descrição, Ativo).
 
-### Escrita (cada ação só aparece no mapa depois que a monday confirma)
-- **Criar**: `create_item` no quadro do tipo, grupo `topics` (configurável). Campos: título (todos) e descrição (aula).
-- **Editar**: `change_multiple_column_values` apenas com os campos alterados (título; descrição da aula).
-- **Duplicar**: novo item com colunas simples copiadas e nome "— cópia"; relações não são copiadas.
-- **Excluir**: `delete_item` após a confirmação; em erro o nó permanece.
-- **Conectar/remover conexão**: Aula ↔ Infoproduto grava em `board_relation_mm7r2dm1` (lado da aula) e Vídeo ↔ Infoproduto em `board_relation_mm7rxp0x` (lado do vídeo; a monday reflete em `board_relation_mm7rxzk8`). O servidor lê a lista atual antes de gravar, então ligações existentes nunca são sobrescritas.
-- Outras conexões (Aula↔Aula, Infoproduto↔Infoproduto, Vídeo↔Aula) mostram "Este tipo de conexão ainda não possui armazenamento configurado na monday." e não são salvas.
-- Posições e fixações dos nós ficam só no navegador (localStorage). Nenhuma coluna ou grupo é criado na monday.
+Os tipos núcleo (Infoproduto, Aula, YouTube) e as duas conexões atuais (`contem-aula`, `divulga`) são registrados SEM tocar nos boards existentes (`Registrar estrutura` na tela Conexões; boards com o prefixo antigo "Segundo Cérebro |" são renomeados, nunca recriados ou `POST /api/structure {"op":"init"}`). Enquanto o registry não existe, valem esses mesmos padrões (`src/brains/content/core.ts`), com os ids de coluna descobertos no schema real dos boards. O servidor inclui o schema no `GET /api/graph`; o cliente o mantém em memória (sem consulta a cada arrasto).
+
+Leitura: cada item é um nó; cada conexão ativa diz em qual coluna a ligação é guardada (e a coluna refletida). A ligação é lida dos dois lados e deduplicada pelo par de ids (uma aresta por par); nada é inferido por nome, grupo ou tema. Escrita: o servidor lê antes a lista atual da coluna e grava o conjunto resultante (nunca sobrescreve), respeitando a cardinalidade.
+
+### Criar tipos e conexões (tela Conexões)
+- **+ Tipo de conteúdo**: nome, descrição, cérebro, ícone, "criar novo board". A prévia mostra o board (`SC | {Cérebro} | {Tipo no plural}`, por exemplo `SC | Projetos | Clientes`), workspace, pasta e colunas (Descrição, Status). Só depois da confirmação o servidor cria o board na pasta do cérebro, as colunas e o registro. Falhas no meio mostram o que já foi feito e oferecem "Tentar concluir configuração" (idempotente; nada é apagado).
+- **+ Tipo de conexão**: origem, destino (podem ser o mesmo tipo), nome da relação, natureza e cardinalidade. Cria UMA coluna Connect Boards no board de origem (múltiplos itens e coluna refletida no destino quando aplicável) e registra a regra. Nunca é criada uma coluna por ligação entre itens.
+- No mapa, ligar dois tipos sem regra mostra "Este tipo de conexão ainda não está configurado." com **Configurar conexão** (abre Conexões já com origem e destino).
+- Não há exclusão de boards nem de colunas; tipos núcleo não podem ser removidos.
 
 ### Variáveis de ambiente
 | Variável | Onde | Descrição |
 | --- | --- | --- |
-| `MONDAY_API_TOKEN` | servidor (obrigatória) | token com leitura e escrita nos 3 quadros |
-| `MONDAY_*_BOARD_ID` | servidor | opcionais (padrões embutidos) |
-| `MONDAY_WRITE_ENABLED` | servidor | `0` = somente leitura |
-| `MONDAY_*_NEW_ITEM_GROUP_ID` | servidor | grupo de itens novos (padrão `topics`) |
-| `MONDAY_CACHE_SECONDS` | servidor | cache do grafo por instância (padrão 30; "Atualizar dados" ignora o cache) |
-| `ALLOWED_ORIGINS` / `APP_ORIGIN` | servidor | hosts extras aceitos no POST (o host da própria requisição, `VERCEL_*URL` e localhost já são aceitos) |
-| `MONDAY_FIXTURE=1` | só dev | dados sintéticos (somente leitura) |
-| `VITE_DATA_SOURCE` | cliente | `monday` ou `mock` (padrão: monday; mocks só com `mock`) |
+| `MONDAY_API_TOKEN` | servidor (obrigatória) | token com leitura e escrita; para estrutura precisa criar boards/colunas e ler workspaces |
+| `MONDAY_API_VERSION` | servidor | padrão `2025-10` (criar colunas Connect Boards exige 2025-10 ou mais nova) |
+| `MONDAY_*_BOARD_ID` | servidor | boards núcleo (padrões embutidos) |
+| `MONDAY_WRITE_ENABLED` | servidor | `0` = somente leitura (inclui estrutura) |
+| `MONDAY_STRUCTURE_ENABLED` | servidor | `1` habilita alterações de estrutura; em desenvolvimento vem ligado, na Vercel precisa ser explícito |
+| `SCHEMA_ADMIN_KEY` | servidor | chave exigida (cabeçalho `x-admin-key`) para alterar estrutura; obrigatória na Vercel |
+| `MONDAY_SCHEMA_NODETYPES_BOARD_ID`, `MONDAY_SCHEMA_CONNECTIONS_BOARD_ID` | servidor | opcionais (por padrão os boards de registry são achados pelo nome na pasta) |
+| `ALLOWED_ORIGINS` / `APP_ORIGIN` | servidor | hosts extras aceitos nos POST (o host da requisição, `VERCEL_*URL` e localhost já são aceitos) |
+| `MONDAY_CACHE_SECONDS` | servidor | cache do grafo por instância (padrão 30; "Atualizar dados" e qualquer gravação o invalidam) |
+| `VITE_DATA_SOURCE` | cliente | `monday` (padrão) ou `mock` |
 
 ### Teste local
-Preencha `MONDAY_API_TOKEN` no `.env` e `VITE_DATA_SOURCE=monday`; `npm run dev`. Diagnóstico: `/api/schema` (grupos e colunas) e `/api/graph`. Use itens `[TESTE] ...` para testar a escrita e apague-os depois.
+Preencha `MONDAY_API_TOKEN` no `.env`; `npm run dev`. Diagnóstico: `/api/schema` (colunas dos boards ativos), `/api/graph` (grafo + schema) e `GET /api/structure` (pasta, workspace, permissões). Para testar estrutura crie tipos `[TESTE] ...` e apague os boards, linhas do registry e colunas de teste depois (a aplicação não apaga boards nem colunas).
 
 ### Vercel
-Settings → Environment Variables: `MONDAY_API_TOKEN` (Production e Preview, sensível). Opcional: `MONDAY_WRITE_ENABLED=0` em ambientes que não devem gravar. Atenção: `/api/graph` e `/api/mutate` ficam públicos a quem tiver a URL; ative *Deployment Protection* (ou coloque autenticação) antes de divulgar, pois qualquer visitante poderia editar a monday.
+Settings → Environment Variables: `MONDAY_API_TOKEN` (Production e Preview, sensível). Para liberar alterações de estrutura em produção: `MONDAY_STRUCTURE_ENABLED=1` e `SCHEMA_ADMIN_KEY=<segredo>` (sem a chave a Vercel recusa). `MONDAY_WRITE_ENABLED=0` bloqueia toda escrita. `/api/graph` e `/api/mutate` ficam públicos a quem tiver a URL; ative *Deployment Protection* ou autenticação antes de divulgar.
+
+### Cérebros (Conteúdo, Projetos, Marketing)
+Cada tipo e cada conexão tem um `brainId` (coluna Brain ID dos boards `SC | Estrutura` e `SC | Relações`). A interface mostra e edita só o schema do cérebro ativo: mapa, busca, filtros, "Novo conteúdo" e a tela Conexões (origem e destino só listam tipos do mesmo cérebro; conexões entre cérebros ainda não são permitidas). Projetos e Marketing começam vazios: o mapa mostra "Seu cérebro ainda está vazio" com **Configurar estrutura**, e a tela Conexões mostra **Criar primeiro tipo de conteúdo**. O diálogo de novo tipo abre com o cérebro atual e mostra o nome do board antes de criar. Para criar um tipo ou uma relação não é preciso mexer no código nem fazer novo deploy.
+
+## Assistente (IA)
+
+Chat lateral à direita (ícone de brilho na barra superior) que interpreta pedidos em linguagem natural, **propõe** um plano e só o executa depois da confirmação do usuário. A monday continua só como armazenamento; a IA nunca fala com ela.
+
+Fluxo: usuário → `POST /api/ai/chat` (OpenAI, Responses API, ciclo de ferramentas) → plano (sem gravar nada) → usuário clica **Criar agora** → `POST /api/ai/execute` → o servidor **revalida cada ação** e executa pelas mesmas funções do app (`runMutation`: criar item e ligar itens) → o mapa é recarregado → **Ver no mapa** / **Enquadrar itens criados**.
+
+- **Ferramentas de leitura** (executam sozinhas): `get_brain_schema`, `search_content`, `get_content_details`.
+- **Ferramentas de escrita** (só registram uma proposta no plano; nada é gravado): `create_content`, `connect_content`. Não existem ferramentas de exclusão, de criação de tipos/conexões nem de GraphQL.
+- O modelo recebe o schema do cérebro ativo (tipos e conexões, em linguagem de negócio), conteúdos possivelmente relacionados e consulta o resto por busca; não recebe o grafo inteiro, tokens nem ids de coluna. Cada cérebro tem a sua conversa (guardada só no navegador, nesta sessão).
+- Segurança: a chave `OPENAI_API_KEY` fica no servidor; texto do usuário não consegue pular a confirmação nem o schema (a execução é outro endpoint e valida tudo de novo); há limite de requisições por IP, checagem de origem e `MONDAY_WRITE_ENABLED=0` bloqueia a execução.
+
+Variáveis: `OPENAI_API_KEY` (obrigatória para o assistente), `OPENAI_MODEL` (padrão `gpt-5.4-mini`), `AI_ENABLED=0` para desligar, `AI_MAX_STEPS`. Na Vercel, crie `OPENAI_API_KEY` (sensível) em Production/Preview; `/api/ai/*` ficam públicos como as demais rotas, então ative *Deployment Protection* antes de divulgar (cada pedido consome a cota da OpenAI).

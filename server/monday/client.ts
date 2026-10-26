@@ -23,7 +23,7 @@ export class MondayError extends Error {
 export function readConfig(env: Record<string, string | undefined>): MondayConfig {
   return {
     token: (env.MONDAY_API_TOKEN ?? '').trim(),
-    apiVersion: env.MONDAY_API_VERSION?.trim() || '2025-07',
+    apiVersion: env.MONDAY_API_VERSION?.trim() || '2025-10',
     boards: {
       infoproducts: env.MONDAY_INFOPRODUCTS_BOARD_ID?.trim() || DEFAULT_BOARDS.infoproducts,
       courses: env.MONDAY_COURSES_BOARD_ID?.trim() || DEFAULT_BOARDS.courses,
@@ -31,11 +31,6 @@ export function readConfig(env: Record<string, string | undefined>): MondayConfi
     },
     cacheSeconds: Number(env.MONDAY_CACHE_SECONDS ?? 30) || 0,
     writesEnabled: env.MONDAY_WRITE_ENABLED?.trim() !== '0',
-    newItemGroups: {
-      infoproducts: env.MONDAY_INFOPRODUCTS_NEW_ITEM_GROUP_ID?.trim() || 'topics',
-      courses: env.MONDAY_COURSES_NEW_ITEM_GROUP_ID?.trim() || 'topics',
-      youtube: env.MONDAY_YOUTUBE_NEW_ITEM_GROUP_ID?.trim() || 'topics',
-    },
   }
 }
 

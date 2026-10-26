@@ -1534,3 +1534,15 @@ mark {
 .node-type-youtube .type-label svg {
   color: #ff8f8f;
 }
+
+.toast-action {
+  margin-left: 12px;
+  padding: 3px 10px;
+  border: 1px solid rgb(62 200 245 / 45%);
+  border-radius: 8px;
+  background: rgb(25 167 232 / 16%);
+  color: var(--brand-cyan);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
